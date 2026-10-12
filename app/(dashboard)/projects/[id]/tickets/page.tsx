@@ -101,36 +101,62 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
   async function createTicket(e: React.FormEvent) {
     e.preventDefault()
     if (!title.trim()) return
-    setSubmitting(true)
 
-    // Upload files first
-    const uploadedUrls: string[] = []
-    for (const { file } of pendingFiles) {
-      try {
-        const formData = new FormData()
-        formData.append('file', file)
-        const res = await fetch('/api/upload', { method: 'POST', body: formData })
-        const data = await res.json()
-        if (data.url) uploadedUrls.push(data.url)
-      } catch {}
-    }
+    const currentTitle = title.trim()
+    const currentDesc = description.trim()
+    const currentType = type
+    const currentFiles = [...pendingFiles]
+    const tempId = `temp-${Date.now()}`
 
-    const res = await fetch(`/api/projects/${id}/tickets`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description, type, attachments: uploadedUrls }),
-    })
-    if (res.ok) {
-      const ticket = await res.json()
-      setTickets(prev => [ticket, ...prev])
-      setTitle('')
-      setDescription('')
-      setType('OTHER')
-      pendingFiles.forEach(f => URL.revokeObjectURL(f.preview))
-      setPendingFiles([])
-      setShowModal(false)
+    // Optimistic: langsung tampil + tutup modal
+    const optimistic: TicketItem = {
+      id: tempId,
+      title: currentTitle,
+      description: currentDesc || null,
+      type: currentType,
+      status: 'PENDING',
+      pmNotes: null,
+      attachments: currentFiles.map(f => f.preview),
+      createdAt: new Date().toISOString(),
+      createdBy: {
+        id: (session?.user as any)?.id || '',
+        name: session?.user?.name || 'Saya',
+        role: session?.user?.role || 'CLIENT',
+      },
     }
-    setSubmitting(false)
+    setTickets(prev => [optimistic, ...prev])
+    setTitle('')
+    setDescription('')
+    setType('OTHER')
+    setPendingFiles([])
+    setShowModal(false)
+
+    // Upload & simpan di background
+    try {
+      const uploadedUrls: string[] = []
+      for (const { file } of currentFiles) {
+        try {
+          const formData = new FormData()
+          formData.append('file', file)
+          const res = await fetch('/api/upload', { method: 'POST', body: formData })
+          const data = await res.json()
+          if (data.url) uploadedUrls.push(data.url)
+        } catch {}
+      }
+
+      const res = await fetch(`/api/projects/${id}/tickets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: currentTitle, description: currentDesc, type: currentType, attachments: uploadedUrls }),
+      })
+      if (res.ok) {
+        const saved = await res.json()
+        setTickets(prev => prev.map(t => t.id === tempId ? saved : t))
+      }
+      currentFiles.forEach(f => URL.revokeObjectURL(f.preview))
+    } catch (err) {
+      console.error(err)
+    }
   }
 
   async function reviewTicket(ticketId: string) {

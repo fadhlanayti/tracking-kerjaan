@@ -1,5 +1,5 @@
 import { prisma } from './prisma'
-import { sendWhatsApp } from './whatsapp'
+import { sendWhatsApp, normalizePhone } from './whatsapp'
 
 export async function createNotification(data: {
   userId: string
@@ -29,7 +29,7 @@ export async function createNotification(data: {
     })
 
     if (user?.phone) {
-      const sent = await sendWhatsApp(user.phone, data.waMessage)
+      const sent = await sendWhatsApp(normalizePhone(user.phone), data.waMessage)
       if (sent) {
         await prisma.notification.update({
           where: { id: notification.id },
