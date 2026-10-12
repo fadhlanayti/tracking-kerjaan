@@ -32,6 +32,14 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
   const [newPriority, setNewPriority] = useState('MEDIUM')
   const [creating, setCreating] = useState(false)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [members, setMembers] = useState<{ user: { id: string }; role: string }[]>([])
+
+  useEffect(() => {
+    fetch(`/api/projects/${id}`)
+      .then(r => r.json())
+      .then(data => { if (data?.members) setMembers(data.members) })
+      .catch(() => {})
+  }, [id])
 
   function fetchIssues() {
     const p = new URLSearchParams()
@@ -75,15 +83,6 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
       </div>
     )
   }
-
-  const [members, setMembers] = useState<{ user: { id: string }; role: string }[]>([])
-
-  useEffect(() => {
-    fetch(`/api/projects/${id}`)
-      .then(r => r.json())
-      .then(data => { if (data?.members) setMembers(data.members) })
-      .catch(() => {})
-  }, [id])
 
   // PM dan Admin: bisa buat issue, update status, hapus
   // Developer & Client: hanya lihat
