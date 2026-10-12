@@ -132,7 +132,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [updateStatus, setUpdateStatus] = useState<'DO' | 'DOING' | 'DONE'>('DOING')
   const [updateAssigneeId, setUpdateAssigneeId] = useState('')
   const [updateImages, setUpdateImages] = useState<string[]>([])
-  const [uploadingImage, setUploadingImage] = useState(false)
+  const [updatePendingFiles, setUpdatePendingFiles] = useState<{ file: File; preview: string }[]>([])
   const [submittingUpdate, setSubmittingUpdate] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -157,14 +157,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     setUpdateStatus(up.status)
     setUpdateAssigneeId(up.assignedToId || '')
     setUpdateImages(up.attachments || [])
+    updatePendingFiles.forEach(f => URL.revokeObjectURL(f.preview))
+    setUpdatePendingFiles([])
     setShowUpdateModal(true)
   }
 
   async function cancelUpdateModal() {
-    // Delete any newly uploaded images if canceling a new update
-    if (!editingUpdateId && updateImages.length > 0) {
-      updateImages.forEach(url => deleteR2Image(url))
-    }
+    updatePendingFiles.forEach(f => URL.revokeObjectURL(f.preview))
+    setUpdatePendingFiles([])
     setEditingUpdateId(null)
     setUpdateTitle('')
     setUpdateContent('')
@@ -174,9 +174,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   }
 
   async function cancelIssueModal() {
-    if (issueImages.length > 0) {
-      issueImages.forEach(url => deleteR2Image(url))
-    }
+    issuePendingFiles.forEach(f => URL.revokeObjectURL(f.preview))
+    setIssuePendingFiles([])
     setIssueTitle('')
     setIssueDescription('')
     setIssueImages([])
@@ -189,7 +188,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [issueDescription, setIssueDescription] = useState('')
   const [issuePriority, setIssuePriority] = useState('MEDIUM')
   const [issueImages, setIssueImages] = useState<string[]>([])
-  const [uploadingIssueImg, setUploadingIssueImg] = useState(false)
+  const [issuePendingFiles, setIssuePendingFiles] = useState<{ file: File; preview: string }[]>([])
   const [submittingIssue, setSubmittingIssue] = useState(false)
   const issueFileInputRef = useRef<HTMLInputElement>(null)
 
@@ -313,40 +312,23 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   }
 
   // Handle Multiple Image Upload to Cloudflare R2
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>, target: 'update' | 'issue') {
+  // Instant thumbnail preview without uploading immediately
+  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>, target: 'update' | 'issue') {
     const files = e.target.files
     if (!files || files.length === 0) return
-
     const fileList = Array.from(files)
 
-    if (target === 'update') setUploadingImage(true)
-    else setUploadingIssueImg(true)
+    const newPending = fileList.map(file => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }))
 
-    try {
-      const uploadedUrls: string[] = []
-      for (const file of fileList) {
-        const formData = new FormData()
-        formData.append('file', file)
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        })
-        const data = await res.json()
-        if (data.url) uploadedUrls.push(data.url)
-      }
-
-      if (target === 'update') {
-        setUpdateImages(prev => [...prev, ...uploadedUrls])
-      } else {
-        setIssueImages(prev => [...prev, ...uploadedUrls])
-      }
-    } catch (err) {
-      console.error(err)
-    } finally {
-      if (target === 'update') setUploadingImage(false)
-      else setUploadingIssueImg(false)
-      if (e.target) e.target.value = ''
+    if (target === 'update') {
+      setUpdatePendingFiles(prev => [...prev, ...newPending])
+    } else {
+      setIssuePendingFiles(prev => [...prev, ...newPending])
     }
+    if (e.target) e.target.value = ''
   }
 
   // Submit Progress Update (Developer)
@@ -356,6 +338,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     setSubmittingUpdate(true)
 
     try {
+      // Upload pending files on submit
+      const newlyUploadedUrls: string[] = []
+      for (const { file } of updatePendingFiles) {
+        const formData = new FormData()
+        formData.append('file', file)
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        })
+        const data = await res.json()
+        if (data.url) newlyUploadedUrls.push(data.url)
+      }
+
+      const allAttachments = [...updateImages, ...newlyUploadedUrls]
       const isEditing = !!editingUpdateId
       const res = await fetch(`/api/projects/${id}/updates`, {
         method: isEditing ? 'PATCH' : 'POST',
@@ -367,11 +363,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           notes: updateNotes,
           status: updateStatus,
           assignedToId: updateAssigneeId || undefined,
-          attachments: updateImages,
+          attachments: allAttachments,
         }),
       })
 
       if (res.ok) {
+        // Clean blob URLs
+        updatePendingFiles.forEach(f => URL.revokeObjectURL(f.preview))
+        setUpdatePendingFiles([])
+
         if (isEditing) {
           const updated = await res.json()
           setUpdates(prev => prev.map(u => u.id === editingUpdateId ? updated : u))
@@ -493,6 +493,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     setSubmittingIssue(true)
 
     try {
+      const newlyUploadedUrls: string[] = []
+      for (const { file } of issuePendingFiles) {
+        const formData = new FormData()
+        formData.append('file', file)
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        })
+        const data = await res.json()
+        if (data.url) newlyUploadedUrls.push(data.url)
+      }
+
+      const allAttachments = [...issueImages, ...newlyUploadedUrls]
+
       const res = await fetch(`/api/projects/${id}/issues`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -500,12 +514,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           title: issueTitle,
           description: issueDescription,
           priority: issuePriority,
-          attachments: issueImages,
+          attachments: allAttachments,
           projectUpdateId: issueModalUpdate.id,
         }),
       })
 
       if (res.ok) {
+        issuePendingFiles.forEach(f => URL.revokeObjectURL(f.preview))
+        setIssuePendingFiles([])
         setIssueTitle('')
         setIssueDescription('')
         setIssueImages([])
@@ -1227,16 +1243,16 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingImage}
                     className="btn-secondary text-xs"
                     style={{ padding: '0.4rem 0.75rem' }}
                   >
-                    {uploadingImage ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}
-                    {uploadingImage ? 'Mengupload...' : 'Pilih Foto'}
+                    <ImageIcon size={13} />
+                    <span>Pilih Foto</span>
                   </button>
 
+                  {/* Thumbnail yang sudah ada (edit mode) */}
                   {updateImages.map((url, idx) => (
-                    <div key={idx} className="relative w-11 h-11 rounded-lg border border-zinc-200 overflow-hidden group">
+                    <div key={`existing-${idx}`} className="relative w-11 h-11 rounded-lg border border-zinc-200 overflow-hidden group">
                       <img src={url} alt="thumb" className="w-full h-full object-cover" />
                       <button
                         type="button"
@@ -1245,6 +1261,25 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           setUpdateImages(prev => prev.filter((_, i) => i !== idx))
                         }}
                         className="absolute inset-0 bg-red-600/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border-none cursor-pointer"
+                        title="Hapus foto"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Instant local blob thumbnail preview */}
+                  {updatePendingFiles.map((p, idx) => (
+                    <div key={`pending-${idx}`} className="relative w-11 h-11 rounded-lg border border-blue-200 overflow-hidden group shadow-xs">
+                      <img src={p.preview} alt="preview" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          URL.revokeObjectURL(p.preview)
+                          setUpdatePendingFiles(prev => prev.filter((_, i) => i !== idx))
+                        }}
+                        className="absolute inset-0 bg-red-600/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border-none cursor-pointer"
+                        title="Hapus foto"
                       >
                         <X size={12} />
                       </button>
@@ -1376,16 +1411,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   <button
                     type="button"
                     onClick={() => issueFileInputRef.current?.click()}
-                    disabled={uploadingIssueImg}
                     className="btn-secondary text-xs"
                     style={{ padding: '0.4rem 0.75rem' }}
                   >
-                    {uploadingIssueImg ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}
-                    {uploadingIssueImg ? 'Mengupload...' : 'Pilih Foto'}
+                    <ImageIcon size={13} />
+                    <span>Pilih Foto</span>
                   </button>
 
                   {issueImages.map((url, idx) => (
-                    <div key={idx} className="relative w-11 h-11 rounded-lg border border-zinc-200 overflow-hidden group">
+                    <div key={`existing-${idx}`} className="relative w-11 h-11 rounded-lg border border-zinc-200 overflow-hidden group">
                       <img src={url} alt="issue thumb" className="w-full h-full object-cover" />
                       <button
                         type="button"
@@ -1394,6 +1428,24 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           setIssueImages(prev => prev.filter((_, i) => i !== idx))
                         }}
                         className="absolute inset-0 bg-red-600/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border-none cursor-pointer"
+                        title="Hapus foto"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {issuePendingFiles.map((p, idx) => (
+                    <div key={`pending-${idx}`} className="relative w-11 h-11 rounded-lg border border-blue-200 overflow-hidden group shadow-xs">
+                      <img src={p.preview} alt="preview" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          URL.revokeObjectURL(p.preview)
+                          setIssuePendingFiles(prev => prev.filter((_, i) => i !== idx))
+                        }}
+                        className="absolute inset-0 bg-red-600/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border-none cursor-pointer"
+                        title="Hapus foto"
                       >
                         <X size={12} />
                       </button>
