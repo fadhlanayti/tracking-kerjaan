@@ -108,6 +108,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [loading, setLoading] = useState(true)
   const [allUsers, setAllUsers] = useState<User[]>([])
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const isChatOpenRef = useRef(isChatOpen)
+  useEffect(() => {
+    isChatOpenRef.current = isChatOpen
+    if (isChatOpen) setUnreadCount(0)
+  }, [isChatOpen])
   const [expandedUpdateIds, setExpandedUpdateIds] = useState<Record<string, boolean>>({})
 
   function toggleUpdateExpand(updateId: string) {
@@ -281,11 +287,18 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       }))
     }
 
+    function handleChatMessage(message: any) {
+      if (!isChatOpenRef.current && message?.sender?.id !== session?.user?.id) {
+        setUnreadCount(prev => prev + 1)
+      }
+    }
+
     socket.on('project:update:new', handleNewUpdate)
     socket.on('project:update:status', handleStatusUpdate)
     socket.on('project:update:delete', handleDeleteUpdate)
     socket.on('issue:new', handleNewIssue)
     socket.on('project:update:log', handleUpdateLog)
+    socket.on('message:new', handleChatMessage)
 
     return () => {
       socket.off('project:update:new', handleNewUpdate)
@@ -293,6 +306,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       socket.off('project:update:delete', handleDeleteUpdate)
       socket.off('issue:new', handleNewIssue)
       socket.off('project:update:log', handleUpdateLog)
+      socket.off('message:new', handleChatMessage)
     }
   }, [id, session])
 
@@ -685,7 +699,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   }
 
   return (
-    <div className="flex flex-col gap-5 sm:gap-6 w-full px-1 sm:px-0">
+    <div className="flex flex-col gap-5 sm:gap-6 w-full px-1 sm:px-0 pb-24 sm:pb-28">
 
       {/* Project Header Banner (Apple Style Frosted/Deep Card) */}
       <div className="rounded-2xl p-5 sm:p-6 bg-[#1D1D1F] text-white shadow-lg border border-black/10">
@@ -729,7 +743,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       </div>
 
       {/* Quick Navigation Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <Link
           href={`/projects/${id}/issues`}
           className="card p-4 sm:p-5 flex items-center justify-between no-underline group hover:border-[#0071E3]/30 transition-all active:scale-[0.99]"
@@ -761,26 +775,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           </div>
           <ArrowRight size={18} className="text-zinc-400 group-hover:text-zinc-600 group-hover:translate-x-0.5 transition-all" />
         </Link>
-
-        <button
-          onClick={() => setIsChatOpen(true)}
-          className="card p-4 sm:p-5 flex items-center justify-between text-left cursor-pointer group hover:border-[#0071E3]/30 transition-all active:scale-[0.99] border-none"
-        >
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-blue-50 text-blue-600 border border-blue-100">
-              <MessageSquare size={22} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-zinc-900 group-hover:text-[#0071E3] transition-colors">Discussion</p>
-              <p className="text-xs text-zinc-500 mt-0.5">Project live chat channel</p>
-            </div>
-          </div>
-          <ArrowRight size={18} className="text-zinc-400 group-hover:text-zinc-600 group-hover:translate-x-0.5 transition-all" />
-        </button>
       </div>
 
       {/* Main Content Layout: Progress Updates (Col 1) & Team Members (Col 2) */}
-      <div className={`grid grid-cols-1 ${session?.user?.role !== 'CLIENT' ? 'xl:grid-cols-[3fr_1fr]' : ''} gap-5 sm:gap-6 items-start`}>
+      <div className={`grid grid-cols-1 ${session?.user?.role !== 'CLIENT' ? 'lg:grid-cols-[2.7fr_1.3fr]' : ''} gap-5 sm:gap-6 items-start`}>
 
         {/* Column 1: Progress Updates */}
         <div className="flex flex-col gap-4 min-w-0">
@@ -1627,6 +1625,33 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </form>
           </div>
         </div>
+      )}
+
+      {/* Floating Discussion Trigger Button (Compact Circular FAB) */}
+      {!isChatOpen && (
+        <button
+          type="button"
+          onClick={() => {
+            setIsChatOpen(true)
+            setUnreadCount(0)
+          }}
+          aria-label="Buka Live Discussion"
+          title="Project Discussion"
+          className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-14 h-14 rounded-full text-white shadow-xl hover:shadow-2xl transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer border-none group"
+          style={{
+            background: 'linear-gradient(135deg, #0071E3 0%, #087CF0 100%)',
+            boxShadow: '0 8px 24px rgba(0, 113, 227, 0.4)',
+          }}
+        >
+          <div className="relative flex items-center justify-center">
+            <MessageSquare size={22} className="stroke-[2.2] transition-transform group-hover:scale-110" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-3.5 -right-3.5 min-w-[22px] h-[22px] px-1 rounded-full bg-rose-500 text-white text-[11px] font-extrabold flex items-center justify-center border-2 border-white animate-bounce shadow-md">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </div>
+        </button>
       )}
 
       {/* Floating Chat Widget */}

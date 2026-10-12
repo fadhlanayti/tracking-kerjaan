@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 
 export default function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params)
@@ -42,7 +43,19 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
     const data = await res.json()
 
     if (data.success) {
-      router.push('/login')
+      // Auto-login langsung dengan credentials
+      const signInRes = await signIn('credentials', {
+        email: invite?.email,
+        password,
+        redirect: false,
+      })
+
+      if (signInRes?.ok) {
+        router.push('/dashboard')
+        router.refresh()
+      } else {
+        router.push('/login')
+      }
     } else {
       setError(data.error || 'Failed')
       setSubmitting(false)

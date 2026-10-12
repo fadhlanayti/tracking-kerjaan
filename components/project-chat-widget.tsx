@@ -48,15 +48,27 @@ export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: s
       .catch(() => setLoading(false))
 
     const socket = getSocket()
-    socket.emit('join:project', { projectId })
+    const joinRoom = () => {
+      socket.emit('join:project', {
+        projectId,
+        userId: session?.user?.id,
+        userName: session?.user?.name,
+      })
+    }
+
+    joinRoom()
+    socket.on('connect', joinRoom)
 
     const handleNewMessage = (message: Message) => {
       setMessages(prev => prev.some(m => m.id === message.id) ? prev : [...prev, message])
     }
 
     socket.on('message:new', handleNewMessage)
-    return () => { socket.off('message:new', handleNewMessage) }
-  }, [projectId, isOpen, loading])
+    return () => {
+      socket.off('connect', joinRoom)
+      socket.off('message:new', handleNewMessage)
+    }
+  }, [projectId, isOpen, loading, session])
 
   useEffect(() => {
     if (isOpen) bottomRef.current?.scrollIntoView({ behavior: 'auto' })
@@ -147,7 +159,7 @@ export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: s
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-[#202524] border-b border-[#2c3332] shadow-sm relative z-10">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-[#0071E3]/20 text-[#0071E3] flex items-center justify-center">
             <MessageSquare size={16} />
           </div>
           <div>
@@ -183,8 +195,8 @@ export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: s
               return (
                 <div key={msg.id}>
                   {showDate && (
-                    <div className="text-center my-3">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 bg-[#202524] px-3 py-1 rounded-full shadow-sm border border-[#2c3332]">
+                    <div className="text-center my-3.5">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-blue-300 bg-blue-950/70 px-3.5 py-1 rounded-full shadow-xs border border-blue-500/30">
                         {msgDate}
                       </span>
                     </div>
@@ -194,31 +206,98 @@ export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: s
                       <span className="text-[11px] font-semibold text-zinc-400 mb-1 ml-1">{msg.sender.name}</span>
                     )}
                     <div
-                      className={`relative max-w-[85%] px-3.5 py-2.5 text-[13px] shadow-sm ${
+                      className={`relative max-w-[85%] text-[13px] shadow-sm ${
                         isMe
-                          ? 'bg-[#F97316] text-white rounded-[1.25rem] rounded-br-[0.25rem]'
+                          ? 'bg-[#0071E3] text-white rounded-[1.25rem] rounded-br-[0.25rem]'
                           : 'bg-[#2a302f] text-zinc-100 rounded-[1.25rem] rounded-bl-[0.25rem]'
-                      }`}
+                      } ${msg.content ? 'px-3.5 py-2.5' : 'p-1.5'}`}
                       style={{ lineHeight: '1.4' }}
                     >
-                      {msg.content}
+                      {/* Media Photos Grid (WhatsApp / Telegram style) */}
                       {msg.attachments?.length > 0 && (
-                        <div className="mt-2 flex flex-col gap-1.5">
-                          {msg.attachments.map((url, i) => {
-                            const isImg = url.startsWith('blob:') || url.startsWith('data:image/') || /\.(jpg|jpeg|png|gif|webp|svg|avif)$/i.test(url.split('?')[0]) || url.startsWith('/uploads/')
-                            if (isImg) {
-                              return (
-                                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
-                                  <img src={url} alt="attachment" className="max-w-[220px] w-full rounded-lg object-cover border border-white/10 hover:opacity-90 transition-opacity" />
-                                </a>
-                              )
-                            }
-                            return <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="underline opacity-90 block">File {i+1}</a>
-                          })}
+                        <div className={msg.content ? 'mb-2' : ''}>
+                          {(() => {
+                            const images = msg.attachments.filter(url =>
+                              url.startsWith('blob:') ||
+                              url.startsWith('data:image/') ||
+                              /\.(jpg|jpeg|png|gif|webp|svg|avif)$/i.test(url.split('?')[0]) ||
+                              url.startsWith('/uploads/')
+                            )
+                            const otherFiles = msg.attachments.filter(url => !images.includes(url))
+
+                            return (
+                              <>
+                                {images.length === 1 && (
+                                  <a href={images[0]} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-xl">
+                                    <img
+                                      src={images[0]}
+                                      alt="attachment"
+                                      className="max-w-[240px] max-h-[260px] w-full rounded-xl object-cover hover:opacity-95 transition-opacity"
+                                    />
+                                  </a>
+                                )}
+
+                                {images.length === 2 && (
+                                  <div className="grid grid-cols-2 gap-1 max-w-[260px] rounded-xl overflow-hidden">
+                                    {images.map((url, i) => (
+                                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block aspect-square overflow-hidden">
+                                        <img src={url} alt={`img-${i}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-200" />
+                                      </a>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {images.length === 3 && (
+                                  <div className="grid grid-cols-2 gap-1 max-w-[260px] rounded-xl overflow-hidden">
+                                    <a href={images[0]} target="_blank" rel="noopener noreferrer" className="row-span-2 block overflow-hidden">
+                                      <img src={images[0]} alt="img-0" className="w-full h-full object-cover min-h-[160px] hover:scale-105 transition-transform duration-200" />
+                                    </a>
+                                    <div className="grid grid-rows-2 gap-1">
+                                      {images.slice(1).map((url, i) => (
+                                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block aspect-square overflow-hidden">
+                                          <img src={url} alt={`img-${i+1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-200" />
+                                        </a>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {images.length >= 4 && (
+                                  <div className="grid grid-cols-2 gap-1 max-w-[260px] rounded-xl overflow-hidden">
+                                    {images.slice(0, 4).map((url, i) => (
+                                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative block aspect-square overflow-hidden group">
+                                        <img src={url} alt={`img-${i}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                                        {i === 3 && images.length > 4 && (
+                                          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center text-white font-bold text-base">
+                                            +{images.length - 4}
+                                          </div>
+                                        )}
+                                      </a>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {otherFiles.length > 0 && (
+                                  <div className="flex flex-col gap-1 mt-1.5 px-1">
+                                    {otherFiles.map((url, i) => (
+                                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-xs underline text-blue-200 hover:text-white truncate block">
+                                        📄 File {i + 1}
+                                      </a>
+                                    ))}
+                                  </div>
+                                )}
+                              </>
+                            )
+                          })()}
                         </div>
                       )}
+
+                      {/* Text content (jika ada) */}
+                      {msg.content ? (
+                        <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                      ) : null}
                     </div>
-                    <span className="text-[9px] font-medium text-zinc-500 mt-1 mx-1">{formatTime(msg.createdAt)}</span>
+                    <span className="text-[10px] font-medium text-zinc-400 mt-1 mx-1">{formatTime(msg.createdAt)}</span>
                   </div>
                 </div>
               )
@@ -263,7 +342,7 @@ export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: s
           <button
             type="submit"
             disabled={!input.trim() && pendingFiles.length === 0}
-            className="w-8 h-8 rounded-full bg-[#F97316] text-white flex items-center justify-center border-none cursor-pointer shrink-0 disabled:opacity-40 transition-opacity"
+            className="w-8 h-8 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white flex items-center justify-center border-none cursor-pointer shrink-0 disabled:opacity-40 transition-all active:scale-95 shadow-md shadow-blue-500/20"
           >
             <Send size={14} />
           </button>

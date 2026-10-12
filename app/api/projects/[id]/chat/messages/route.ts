@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { emitSocket } from '@/lib/socket'
 
 export async function GET(
   req: NextRequest,
@@ -43,7 +44,12 @@ export async function POST(
 
   const { id } = await params
   const { content, attachments } = await req.json()
-  if (!content) return NextResponse.json({ error: 'Content required' }, { status: 400 })
+  const trimmedContent = typeof content === 'string' ? content.trim() : ''
+  const hasAttachments = Array.isArray(attachments) && attachments.length > 0
+
+  if (!trimmedContent && !hasAttachments) {
+    return NextResponse.json({ error: 'Pesan atau lampiran wajib diisi' }, { status: 400 })
+  }
 
   const channel = await prisma.chatChannel.findUnique({
     where: { projectId: id },
@@ -54,11 +60,14 @@ export async function POST(
     data: {
       channelId: channel.id,
       senderId: session.user.id,
-      content,
-      attachments: attachments || [],
+      content: trimmedContent,
+      attachments: hasAttachments ? attachments : [],
     },
     include: { sender: { select: { id: true, name: true, avatar: true } } },
   })
+
+  // Broadcast realtime socket to all participants in this project
+  emitSocket(`project:${id}`, 'message:new', { ...message, projectId: id })
 
   return NextResponse.json(message, { status: 201 })
 }
