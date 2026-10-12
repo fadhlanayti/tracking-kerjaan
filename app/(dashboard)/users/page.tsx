@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { UserPlus, Trash2, KeyRound, Copy, Check, ExternalLink, X } from 'lucide-react'
+import { UserPlus, Trash2, KeyRound, Copy, Check, ExternalLink, X, MessageCircle } from 'lucide-react'
 
 interface User {
   id: string
@@ -156,40 +156,95 @@ export default function UsersPage() {
       {/* Modal Tampilan Link Reset Password */}
       {resetModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="card p-6 w-full max-w-md shadow-xl bg-[var(--bg-card)] border border-[var(--border)] relative space-y-4">
-
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-1.5">
-                  <KeyRound size={16} className="text-[var(--accent)]" />
-                  Link Reset Password
-                </h3>
-                <p className="text-xs text-[var(--text-muted)] mt-1">
-                  Untuk akun <strong>{resetModal.user.name}</strong> ({resetModal.user.email})
-                </p>
+          <div
+            className="card w-full shadow-2xl relative"
+            style={{
+              maxWidth: 520,
+              padding: '1.75rem',
+              borderRadius: '1.25rem',
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '2.5rem',
+                  height: '2.5rem',
+                  borderRadius: '0.75rem',
+                  backgroundColor: 'var(--accent-subtle)',
+                  color: 'var(--accent)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <KeyRound size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.01em' }}>
+                    Link Reset Password
+                  </h3>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
+                    Akun: <strong style={{ color: 'var(--text-secondary)' }}>{resetModal.user.name}</strong> ({resetModal.user.email})
+                  </p>
+                </div>
               </div>
+
               <button
                 onClick={() => setResetModal(null)}
-                className="p-1 rounded-lg hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] cursor-pointer"
+                className="cursor-pointer"
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  color: 'var(--text-muted)',
+                  padding: '0.25rem',
+                  borderRadius: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-[var(--text-secondary)]">
+            {/* Input & Copy Row */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.375rem' }}>
                 Bagikan link berikut ke user:
               </label>
-              <div className="flex items-center gap-2">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <input
                   type="text"
                   readOnly
                   value={resetModal.resetUrl}
-                  className="input text-xs flex-1 font-mono select-all bg-[var(--bg-elevated)]"
+                  onClick={e => (e.target as HTMLInputElement).select()}
+                  className="input select-all"
+                  style={{
+                    fontSize: '0.75rem',
+                    fontFamily: 'monospace',
+                    padding: '0.625rem 0.75rem',
+                    backgroundColor: 'var(--bg-elevated)',
+                    flex: 1,
+                    minWidth: 0,
+                    height: 'auto',
+                    lineHeight: 'normal'
+                  }}
                 />
                 <button
                   onClick={() => copyLink(resetModal.resetUrl)}
-                  className="btn-primary text-xs py-2 px-3 inline-flex items-center gap-1 cursor-pointer shrink-0"
+                  className="btn-primary"
+                  style={{
+                    fontSize: '0.75rem',
+                    padding: '0.625rem 1rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    flexShrink: 0,
+                    cursor: 'pointer'
+                  }}
                 >
                   {copied ? <Check size={14} /> : <Copy size={14} />}
                   <span>{copied ? 'Tersalin' : 'Salin'}</span>
@@ -197,16 +252,31 @@ export default function UsersPage() {
               </div>
             </div>
 
+            {/* WhatsApp notification info */}
             {resetModal.phone && (
-              <p className="text-[11px] text-[var(--green)] bg-green-50/50 p-2.5 rounded-lg border border-green-200">
-                Link reset password juga otomatis dikirimkan ke nomor WhatsApp <strong>{resetModal.phone}</strong>.
-              </p>
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.625rem',
+                padding: '0.75rem 0.875rem',
+                borderRadius: '0.75rem',
+                backgroundColor: 'rgba(52, 199, 89, 0.08)',
+                border: '1px solid rgba(52, 199, 89, 0.25)',
+                marginBottom: '1.25rem'
+              }}>
+                <MessageCircle size={16} style={{ color: 'var(--green)', flexShrink: 0, marginTop: '0.125rem' }} />
+                <p style={{ fontSize: '0.75rem', color: '#15803D', lineHeight: 1.5, margin: 0 }}>
+                  Link reset password juga otomatis dikirimkan ke WhatsApp <strong style={{ color: '#166534' }}>{resetModal.phone}</strong>.
+                </p>
+              </div>
             )}
 
-            <div className="flex justify-end pt-2">
+            {/* Footer Buttons */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
               <button
                 onClick={() => setResetModal(null)}
-                className="btn-secondary text-xs py-1.5 px-4 cursor-pointer"
+                className="btn-secondary"
+                style={{ fontSize: '0.75rem', padding: '0.5rem 1.25rem', cursor: 'pointer' }}
               >
                 Tutup
               </button>
