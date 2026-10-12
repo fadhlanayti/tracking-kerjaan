@@ -76,9 +76,22 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
     )
   }
 
-  const canCreate = session?.user?.role === 'ADMIN'
-  const canUpdateStatus = session?.user?.role === 'ADMIN' || session?.user?.role === 'DEVELOPER'
-  const canDelete = session?.user?.role === 'ADMIN'
+  const [members, setMembers] = useState<{ user: { id: string }; role: string }[]>([])
+
+  useEffect(() => {
+    fetch(`/api/projects/${id}`)
+      .then(r => r.json())
+      .then(data => { if (data?.members) setMembers(data.members) })
+      .catch(() => {})
+  }, [id])
+
+  // PM dan Admin: bisa buat issue, update status, hapus
+  // Developer & Client: hanya lihat
+  const isPMorAdmin = session?.user?.role === 'ADMIN' ||
+    members.some(m => m.user.id === (session?.user as any)?.id && m.role === 'PM')
+  const canCreate = isPMorAdmin
+  const canUpdateStatus = isPMorAdmin
+  const canDelete = isPMorAdmin
 
   async function deleteIssue(issueId: string) {
     if (!confirm('Hapus issue ini secara permanen?')) return
@@ -214,8 +227,8 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
         </div>
       </div>
 
-      {/* Client info banner */}
-      {session?.user?.role === 'CLIENT' && (
+      {/* Non-PM/Admin info banner */}
+      {!isPMorAdmin && (
         <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', backgroundColor: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.15)' }}>
           <p className="text-sm" style={{ color: '#7C3AED', margin: 0 }}>
             💡 Ingin melaporkan masalah? Buat <strong>Ticket</strong> terlebih dahulu untuk disetujui PM.

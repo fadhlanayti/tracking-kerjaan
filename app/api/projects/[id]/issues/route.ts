@@ -50,9 +50,13 @@ export async function POST(
   const { title, description, priority, attachments, projectUpdateId } = await req.json()
   if (!title) return NextResponse.json({ error: 'Title required' }, { status: 400 })
 
-  // Client tidak bisa create issue langsung — harus lewat ticket
-  if (session.user.role === 'CLIENT') {
-    return NextResponse.json({ error: 'Client harus membuat ticket terlebih dahulu' }, { status: 403 })
+  // Hanya PM/Admin yang bisa buat issue
+  // Developer & Client tidak bisa — Client lewat ticket, Developer hanya bisa bikin progress update
+  const isPMorAdmin = session.user.role === 'ADMIN' || !!(await prisma.projectMember.findFirst({
+    where: { projectId: id, userId: session.user.id, role: 'PM' },
+  }))
+  if (!isPMorAdmin) {
+    return NextResponse.json({ error: 'Hanya PM atau Admin yang bisa membuat issue' }, { status: 403 })
   }
 
   const issue = await prisma.issue.create({
