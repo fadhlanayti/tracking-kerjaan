@@ -780,7 +780,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       </div>
 
       {/* Main Content Layout: Progress Updates (Col 1) & Team Members (Col 2) */}
-      <div className="grid grid-cols-1 xl:grid-cols-[3fr_1fr] gap-5 sm:gap-6 items-start">
+      <div className={`grid grid-cols-1 ${session?.user?.role !== 'CLIENT' ? 'xl:grid-cols-[3fr_1fr]' : ''} gap-5 sm:gap-6 items-start`}>
 
         {/* Column 1: Progress Updates */}
         <div className="flex flex-col gap-4 min-w-0">
@@ -882,6 +882,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         </button>
                       )}
 
+                      {/* Lapor Issue — hanya PM/Admin */}
+                      {isAdmin && (
                       <button
                         onClick={() => {
                           setIssueModalUpdate(up)
@@ -894,6 +896,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         <Bug size={13} />
                         <span className="hidden sm:inline">Lapor</span> Issue
                       </button>
+                      )}
 
                       {(isAdmin || up.author.id === session?.user?.id) && (
                         <button
