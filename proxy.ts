@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 
 export function proxy(request: NextRequest) {
   // Fix redirect loop behind nginx reverse proxy:
-  // Next.js doesn't know request came in via HTTPS, generates http:// redirects → loop
+  // When accessed via HTTPS reverse proxy, Next.js internal redirects must target https://
   const proto = request.headers.get('x-forwarded-proto')
   if (proto === 'https' && request.nextUrl.protocol === 'http:') {
     const url = request.nextUrl.clone()
