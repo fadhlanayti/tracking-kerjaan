@@ -1,5 +1,4 @@
 import { createServer } from 'http'
-import { parse } from 'url'
 import next from 'next'
 import { Server } from 'socket.io'
 import { createReadStream, existsSync, statSync } from 'fs'
@@ -24,8 +23,8 @@ const MIME_TYPES = {
 
 app.prepare().then(() => {
   const server = createServer((req, res) => {
-    const parsedUrl = parse(req.url, true)
-    const pathname = parsedUrl.pathname || ''
+    const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`)
+    const pathname = url.pathname
 
     // Directly serve /uploads/* from public/uploads at HTTP level
     if (pathname.startsWith('/uploads/')) {
@@ -47,15 +46,12 @@ app.prepare().then(() => {
       }
     }
 
-    handle(req, res, parsedUrl)
+    handle(req, res, url)
   })
 
   const io = new Server(server, {
     cors: { origin: '*', methods: ['GET', 'POST'] },
   })
-
-  // Track online users per project
-  const projectRooms = new Map()
 
   io.on('connection', (socket) => {
     console.log('Client connected:', socket.id)
@@ -70,7 +66,6 @@ app.prepare().then(() => {
     })
 
     socket.on('message:send', (message) => {
-      // Broadcast to project room
       io.to(`project:${message.projectId}`).emit('message:new', message)
     })
 

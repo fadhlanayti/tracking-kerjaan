@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { emitSocket } from '@/lib/socket'
 
 export async function GET(
   req: NextRequest,
@@ -92,9 +93,7 @@ export async function POST(
   })
 
   // Emit realtime event
-  if ((globalThis as any).__io) {
-    (globalThis as any).__io.to(`project:${id}`).emit('project:update:new', update)
-  }
+  emitSocket(`project:${id}`, 'project:update:new', update)
 
   return NextResponse.json(update, { status: 201 })
 }
@@ -136,9 +135,7 @@ export async function PATCH(
   })
 
   // Emit realtime event
-  if ((globalThis as any).__io) {
-    (globalThis as any).__io.to(`project:${id}`).emit('project:update:status', update)
-  }
+  emitSocket(`project:${id}`, 'project:update:status', update)
 
   return NextResponse.json(update)
 }
@@ -170,9 +167,7 @@ export async function DELETE(
 
   await prisma.projectUpdate.delete({ where: { id: updateId } })
 
-  if ((globalThis as any).__io) {
-    (globalThis as any).__io.to(`project:${id}`).emit('project:update:delete', { id: updateId })
-  }
+  emitSocket(`project:${id}`, 'project:update:delete', { id: updateId })
 
   return NextResponse.json({ success: true, id: updateId })
 }

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications'
+import { emitSocket } from '@/lib/socket'
 
 export async function GET(
   req: NextRequest,
@@ -99,9 +100,7 @@ export async function POST(
   }
 
   // Emit realtime
-  if ((globalThis as any).__io) {
-    (globalThis as any).__io.to(`project:${id}`).emit('ticket:new', ticket)
-  }
+  emitSocket(`project:${id}`, 'ticket:new', ticket)
 
   return NextResponse.json(ticket, { status: 201 })
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { emitSocket } from '@/lib/socket'
 
 export async function GET(
   req: NextRequest,
@@ -84,9 +85,7 @@ export async function POST(
   })
 
   // Emit realtime event
-  if ((globalThis as any).__io) {
-    (globalThis as any).__io.to(`project:${id}`).emit('issue:new', issue)
-  }
+  emitSocket(`project:${id}`, 'issue:new', issue)
 
   return NextResponse.json(issue, { status: 201 })
 }

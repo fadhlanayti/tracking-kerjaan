@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications'
+import { emitSocket } from '@/lib/socket'
 
 export async function GET(
   req: NextRequest,
@@ -89,9 +90,7 @@ export async function PATCH(
     })
   }
 
-  if ((globalThis as any).__io) {
-    (globalThis as any).__io.to(`project:${id}`).emit('ticket:updated', ticket)
-  }
+  emitSocket(`project:${id}`, 'ticket:updated', ticket)
 
   return NextResponse.json(ticket)
 }
@@ -116,9 +115,7 @@ export async function DELETE(
 
   await prisma.ticket.delete({ where: { id: ticketId } })
 
-  if ((globalThis as any).__io) {
-    (globalThis as any).__io.to(`project:${id}`).emit('ticket:deleted', { id: ticketId })
-  }
+  emitSocket(`project:${id}`, 'ticket:deleted', { id: ticketId })
 
   return NextResponse.json({ success: true })
 }

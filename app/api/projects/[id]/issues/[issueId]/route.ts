@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications'
 import { formatStatusChanged } from '@/lib/whatsapp'
+import { emitSocket } from '@/lib/socket'
 
 export async function GET(
   req: NextRequest,
@@ -170,9 +171,7 @@ export async function DELETE(
 
   await prisma.issue.delete({ where: { id: issueId } })
 
-  if ((globalThis as any).__io) {
-    (globalThis as any).__io.to(`project:${id}`).emit('issue:deleted', { id: issueId })
-  }
+  emitSocket(`project:${id}`, 'issue:deleted', { id: issueId })
 
   return NextResponse.json({ success: true })
 }

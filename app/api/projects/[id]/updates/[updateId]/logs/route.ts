@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { emitSocket } from '@/lib/socket'
 
 export async function POST(
   req: NextRequest,
@@ -75,10 +76,8 @@ export async function POST(
     },
   })
 
-  if ((globalThis as any).__io) {
-    (globalThis as any).__io.to(`project:${id}`).emit('project:update:status', updatedParent)
-    (globalThis as any).__io.to(`project:${id}`).emit('project:update:log', { updateId, log })
-  }
+  emitSocket(`project:${id}`, 'project:update:status', updatedParent)
+  emitSocket(`project:${id}`, 'project:update:log', { updateId, log })
 
   return NextResponse.json({ log, update: updatedParent }, { status: 201 })
 }
