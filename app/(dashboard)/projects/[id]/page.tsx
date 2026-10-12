@@ -331,70 +331,117 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     if (e.target) e.target.value = ''
   }
 
-  // Submit Progress Update (Developer)
+  // Submit Progress Update (Developer) — Instant Optimistic UI
   async function handleCreateUpdate(e: React.FormEvent) {
     e.preventDefault()
     if (!updateTitle.trim()) return
-    setSubmittingUpdate(true)
 
+    const isEditing = !!editingUpdateId
+    const currentTitle = updateTitle.trim()
+    const currentContent = updateContent.trim()
+    const currentNotes = updateNotes.trim()
+    const currentStatus = updateStatus
+    const currentAssigneeId = updateAssigneeId
+    const currentPending = [...updatePendingFiles]
+    const currentExistingImages = [...updateImages]
+    const tempId = isEditing ? editingUpdateId : `temp-${Date.now()}`
+
+    // Optimistic Update: langsung tampilkan di UI seketika
+    if (isEditing) {
+      setUpdates(prev => prev.map(u => {
+        if (u.id !== editingUpdateId) return u
+        return {
+          ...u,
+          title: currentTitle,
+          content: currentContent || null,
+          notes: currentNotes || null,
+          status: currentStatus,
+          assignedToId: currentAssigneeId || u.assignedToId,
+          attachments: [...currentExistingImages, ...currentPending.map(p => p.preview)],
+        }
+      }))
+    } else {
+      const assignedUser = project?.members.find(m => m.user.id === currentAssigneeId)?.user || null
+      const optimisticItem: ProjectUpdate = {
+        id: tempId,
+        author: {
+          id: session?.user?.id || '',
+          name: session?.user?.name || 'Saya',
+          role: session?.user?.role || 'DEVELOPER',
+        },
+        assignedTo: assignedUser ? {
+          id: assignedUser.id,
+          name: assignedUser.name,
+          role: (assignedUser as any).role || 'DEVELOPER',
+        } : null,
+        assignedToId: currentAssigneeId || session?.user?.id || null,
+        status: currentStatus,
+        title: currentTitle,
+        content: currentContent || null,
+        notes: currentNotes || null,
+        attachments: currentPending.map(p => p.preview),
+        createdAt: new Date().toISOString(),
+        timelineLogs: [],
+        issues: [],
+      }
+      setUpdates(prev => [optimisticItem, ...prev])
+    }
+
+    // Langsung tutup modal tanpa delay
+    setShowUpdateModal(false)
+    setEditingUpdateId(null)
+    setUpdateTitle('')
+    setUpdateContent('')
+    setUpdateNotes('')
+    setUpdateImages([])
+    setUpdatePendingFiles([])
+
+    // Proses upload & simpan di background
     try {
-      // Upload pending files on submit
       const newlyUploadedUrls: string[] = []
-      for (const { file } of updatePendingFiles) {
-        const formData = new FormData()
-        formData.append('file', file)
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        })
-        const data = await res.json()
-        if (data.url) newlyUploadedUrls.push(data.url)
+      for (const { file } of currentPending) {
+        try {
+          const formData = new FormData()
+          formData.append('file', file)
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          })
+          const data = await res.json()
+          if (data.url) newlyUploadedUrls.push(data.url)
+        } catch { /* skip */ }
       }
 
-      const allAttachments = [...updateImages, ...newlyUploadedUrls]
-      const isEditing = !!editingUpdateId
+      const allAttachments = [...currentExistingImages, ...newlyUploadedUrls]
       const res = await fetch(`/api/projects/${id}/updates`, {
         method: isEditing ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...(isEditing ? { updateId: editingUpdateId } : {}),
-          title: updateTitle,
-          content: updateContent,
-          notes: updateNotes,
-          status: updateStatus,
-          assignedToId: updateAssigneeId || undefined,
+          ...(isEditing ? { updateId: tempId } : {}),
+          title: currentTitle,
+          content: currentContent,
+          notes: currentNotes,
+          status: currentStatus,
+          assignedToId: currentAssigneeId || undefined,
           attachments: allAttachments,
         }),
       })
 
       if (res.ok) {
-        // Clean blob URLs
-        updatePendingFiles.forEach(f => URL.revokeObjectURL(f.preview))
-        setUpdatePendingFiles([])
-
-        if (isEditing) {
-          const updated = await res.json()
-          setUpdates(prev => prev.map(u => u.id === editingUpdateId ? updated : u))
-        } else {
-          fetchUpdates()
-        }
-
-        setEditingUpdateId(null)
-        setUpdateTitle('')
-        setUpdateContent('')
-        setUpdateNotes('')
-        setUpdateImages([])
-        setShowUpdateModal(false)
+        const saved = await res.json()
+        setUpdates(prev => prev.map(u => u.id === tempId ? { ...saved, timelineLogs: saved.timelineLogs || u.timelineLogs || [] } : u))
       }
+      currentPending.forEach(f => URL.revokeObjectURL(f.preview))
     } catch (err) {
       console.error(err)
-    } finally {
-      setSubmittingUpdate(false)
     }
   }
 
-  // Quick update status from card
+  // Quick update status from card — Instant Optimistic
   async function handleQuickStatusChange(updateId: string, newStatus: 'DO' | 'DOING' | 'DONE') {
+    // Ubah UI seketika
+    setUpdates(prev => prev.map(u => u.id === updateId ? { ...u, status: newStatus } : u))
+
     try {
       const res = await fetch(`/api/projects/${id}/updates`, {
         method: 'PATCH',
@@ -410,67 +457,98 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     }
   }
 
-  // Delete progress update
+  // Delete progress update — Instant Optimistic Deletion
   async function handleDeleteUpdate(updateId: string) {
     if (!window.confirm('Yakin ingin menghapus progress update ini?')) return
+    // Hapus dari UI seketika
+    setUpdates(prev => prev.filter(u => u.id !== updateId))
+
     try {
-      const res = await fetch(`/api/projects/${id}/updates`, {
+      await fetch(`/api/projects/${id}/updates`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ updateId }),
       })
-      if (res.ok) {
-        setUpdates(prev => prev.filter(u => u.id !== updateId))
-      }
     } catch (e) {
       console.error(e)
     }
   }
 
-  // Add timeline log to progress update
+  // Add timeline log to progress update — Instant Optimistic
   async function handleAddLog(updateId: string) {
     if (!logContent.trim()) return
-    setSubmittingLog(true)
+
+    const currentLogContent = logContent.trim()
+    const currentLogNotes = logNotes.trim()
+    const currentLogStatus = logStatus
+    const currentFiles = [...logPendingFiles]
+    const tempLogId = `temp-log-${Date.now()}`
+
+    const optimisticLog: TimelineLog = {
+      id: tempLogId,
+      content: currentLogContent,
+      notes: currentLogNotes || null,
+      status: currentLogStatus || null,
+      attachments: currentFiles.map(f => f.preview),
+      createdAt: new Date().toISOString(),
+      author: {
+        id: session?.user?.id || '',
+        name: session?.user?.name || 'Saya',
+        role: session?.user?.role || 'DEVELOPER',
+      },
+    }
+
+    // Update UI seketika
+    setUpdates(prev => prev.map(u => {
+      if (u.id !== updateId) return u
+      return {
+        ...u,
+        status: currentLogStatus ? (currentLogStatus as any) : u.status,
+        timelineLogs: [optimisticLog, ...(u.timelineLogs || [])],
+      }
+    }))
+
+    // Reset input seketika
+    setLogContent('')
+    setLogNotes('')
+    setLogStatus('')
+    setLogPendingFiles([])
+    setActiveLogUpdateId(null)
+    if (logFileInputRef.current) logFileInputRef.current.value = ''
+
     try {
-      // Upload pending files to R2 on submit
       const uploadedUrls: string[] = []
-      for (const { file } of logPendingFiles) {
-        const formData = new FormData()
-        formData.append('file', file)
-        const res = await fetch('/api/upload', { method: 'POST', body: formData })
-        const data = await res.json()
-        if (data.url) uploadedUrls.push(data.url)
+      for (const { file } of currentFiles) {
+        try {
+          const formData = new FormData()
+          formData.append('file', file)
+          const res = await fetch('/api/upload', { method: 'POST', body: formData })
+          const data = await res.json()
+          if (data.url) uploadedUrls.push(data.url)
+        } catch {}
       }
 
       const res = await fetch(`/api/projects/${id}/updates/${updateId}/logs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content: logContent,
-          notes: logNotes || undefined,
-          status: logStatus || undefined,
+          content: currentLogContent,
+          notes: currentLogNotes || undefined,
+          status: currentLogStatus || undefined,
           attachments: uploadedUrls,
         }),
       })
+
       if (res.ok) {
         const data = await res.json()
-        // Revoke blob URLs to free memory
-        logPendingFiles.forEach(({ preview }) => URL.revokeObjectURL(preview))
+        currentFiles.forEach(({ preview }) => URL.revokeObjectURL(preview))
         setUpdates(prev => prev.map(u => {
           if (u.id !== updateId) return u
           return { ...data.update, timelineLogs: data.update.timelineLogs ?? [] }
         }))
-        setLogContent('')
-        setLogNotes('')
-        setLogStatus('')
-        setLogPendingFiles([])
-        setActiveLogUpdateId(null)
-        if (logFileInputRef.current) logFileInputRef.current.value = ''
       }
     } catch (e) {
       console.error(e)
-    } finally {
-      setSubmittingLog(false)
     }
   }
 

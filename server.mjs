@@ -2,14 +2,51 @@ import { createServer } from 'http'
 import { parse } from 'url'
 import next from 'next'
 import { Server } from 'socket.io'
+import { createReadStream, existsSync, statSync } from 'fs'
+import { join } from 'path'
 
 const dev = process.env.NODE_ENV !== 'production'
 const app = next({ dev })
 const handle = app.getRequestHandler()
 
+const MIME_TYPES = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  svg: 'image/svg+xml',
+  pdf: 'application/pdf',
+  zip: 'application/zip',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+}
+
 app.prepare().then(() => {
   const server = createServer((req, res) => {
     const parsedUrl = parse(req.url, true)
+    const pathname = parsedUrl.pathname || ''
+
+    // Directly serve /uploads/* from public/uploads at HTTP level
+    if (pathname.startsWith('/uploads/')) {
+      const filename = pathname.replace(/^\/uploads\//, '').replace(/[^a-zA-Z0-9._-]/g, '')
+      const filePath = join(process.cwd(), 'public', 'uploads', filename)
+
+      if (existsSync(filePath)) {
+        const ext = filename.split('.').pop()?.toLowerCase() || ''
+        const contentType = MIME_TYPES[ext] || 'application/octet-stream'
+        const stat = statSync(filePath)
+
+        res.writeHead(200, {
+          'Content-Type': contentType,
+          'Content-Length': stat.size,
+          'Cache-Control': 'public, max-age=31536000, immutable',
+        })
+        createReadStream(filePath).pipe(res)
+        return
+      }
+    }
+
     handle(req, res, parsedUrl)
   })
 
