@@ -312,18 +312,31 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     if (!selectedUserId) return
     setAdding(true)
     setAddError('')
-    const res = await fetch(`/api/projects/${id}/members`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: selectedUserId, role: selectedRole }),
-    })
-    if (res.ok) {
+
+    const user = allUsers.find(u => u.id === selectedUserId)
+    if (user && project) {
+      // Optimistic
+      setProject(prev => prev ? {
+        ...prev,
+        members: [...prev.members, { user: { id: user.id, name: user.name, email: user.email, role: user.role }, role: selectedRole }]
+      } : prev)
       setShowAddMember(false)
       setSelectedUserId('')
+    }
+
+    try {
+      const res = await fetch(`/api/projects/${id}/members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: selectedUserId, role: selectedRole }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setAddError(data.error || 'Gagal menambahkan member')
+        fetchProject() // rollback
+      }
+    } catch {
       fetchProject()
-    } else {
-      const data = await res.json().catch(() => ({}))
-      setAddError(data.error || 'Gagal menambahkan member')
     }
     setAdding(false)
   }
@@ -581,53 +594,72 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     if (logFileInputRef.current) logFileInputRef.current.value = ''
   }
 
-  // Submit Issue from Progress Update
+  // Submit Issue from Progress Update — Optimistic
   async function handleCreateIssue(e: React.FormEvent) {
     e.preventDefault()
     if (!issueTitle.trim() || !issueModalUpdate) return
-    setSubmittingIssue(true)
 
+    const currentTitle = issueTitle.trim()
+    const currentDesc = issueDescription.trim()
+    const currentPriority = issuePriority
+    const currentUpdateId = issueModalUpdate.id
+    const currentFiles = [...issuePendingFiles]
+    const currentExistingImages = [...issueImages]
+    const tempIssueId = `temp-issue-${Date.now()}`
+
+    // Optimistic: add to update's issues, close modal
+    setUpdates(prev => prev.map(u => {
+      if (u.id !== currentUpdateId) return u
+      return {
+        ...u,
+        issues: [...(u.issues || []), {
+          id: tempIssueId,
+          title: currentTitle,
+          status: 'OPEN',
+          priority: currentPriority,
+          createdAt: new Date().toISOString(),
+        }],
+      }
+    }))
+    setIssueTitle('')
+    setIssueDescription('')
+    setIssueImages([])
+    setIssuePendingFiles([])
+    setIssueModalUpdate(null)
+
+    // Upload & save in background
     try {
       const newlyUploadedUrls: string[] = []
-      for (const { file } of issuePendingFiles) {
-        const formData = new FormData()
-        formData.append('file', file)
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        })
-        const data = await res.json()
-        if (data.url) newlyUploadedUrls.push(data.url)
+      for (const { file } of currentFiles) {
+        try {
+          const formData = new FormData()
+          formData.append('file', file)
+          const res = await fetch('/api/upload', { method: 'POST', body: formData })
+          const data = await res.json()
+          if (data.url) newlyUploadedUrls.push(data.url)
+        } catch {}
       }
 
-      const allAttachments = [...issueImages, ...newlyUploadedUrls]
-
+      const allAttachments = [...currentExistingImages, ...newlyUploadedUrls]
       const res = await fetch(`/api/projects/${id}/issues`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: issueTitle,
-          description: issueDescription,
-          priority: issuePriority,
+          title: currentTitle,
+          description: currentDesc,
+          priority: currentPriority,
           attachments: allAttachments,
-          projectUpdateId: issueModalUpdate.id,
+          projectUpdateId: currentUpdateId,
         }),
       })
 
       if (res.ok) {
-        issuePendingFiles.forEach(f => URL.revokeObjectURL(f.preview))
-        setIssuePendingFiles([])
-        setIssueTitle('')
-        setIssueDescription('')
-        setIssueImages([])
-        setIssueModalUpdate(null)
+        currentFiles.forEach(f => URL.revokeObjectURL(f.preview))
         fetchProject()
         fetchUpdates()
       }
     } catch (err) {
       console.error(err)
-    } finally {
-      setSubmittingIssue(false)
     }
   }
 

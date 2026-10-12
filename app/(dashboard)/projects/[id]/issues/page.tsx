@@ -55,25 +55,52 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
 
   async function createIssue(e: React.FormEvent) {
     e.preventDefault()
-    setCreating(true)
-    const res = await fetch(`/api/projects/${id}/issues`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: newTitle, description: newDesc, priority: newPriority }),
-    })
-    if (res.ok) { setNewTitle(''); setNewDesc(''); setShowCreateForm(false); fetchIssues() }
-    setCreating(false)
+    const currentTitle = newTitle.trim()
+    const currentDesc = newDesc.trim()
+    const currentPriority = newPriority
+    const tempId = `temp-${Date.now()}`
+
+    // Optimistic
+    const optimistic: Issue = {
+      id: tempId,
+      title: currentTitle,
+      status: 'OPEN',
+      priority: currentPriority,
+      createdBy: { id: (session?.user as any)?.id || '', name: session?.user?.name || 'Saya' },
+      assignedTo: null,
+      _count: { comments: 0 },
+      createdAt: new Date().toISOString(),
+    }
+    setIssues(prev => [optimistic, ...prev])
+    setNewTitle('')
+    setNewDesc('')
+    setShowCreateForm(false)
+
+    try {
+      const res = await fetch(`/api/projects/${id}/issues`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: currentTitle, description: currentDesc, priority: currentPriority }),
+      })
+      if (res.ok) {
+        const saved = await res.json()
+        setIssues(prev => prev.map(i => i.id === tempId ? { ...saved, _count: saved._count || { comments: 0 } } : i))
+      }
+    } catch (err) {
+      console.error(err)
+    }
   }
 
   async function quickUpdateStatus(issueId: string, status: string) {
-    setUpdatingId(issueId)
-    await fetch(`/api/projects/${id}/issues/${issueId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    })
+    // Optimistic
     setIssues(prev => prev.map(i => i.id === issueId ? { ...i, status } : i))
-    setUpdatingId(null)
+    try {
+      await fetch(`/api/projects/${id}/issues/${issueId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+    } catch {}
   }
 
   if (loading) {
@@ -94,8 +121,11 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
 
   async function deleteIssue(issueId: string) {
     if (!confirm('Hapus issue ini secara permanen?')) return
-    const res = await fetch(`/api/projects/${id}/issues/${issueId}`, { method: 'DELETE' })
-    if (res.ok) setIssues(prev => prev.filter(i => i.id !== issueId))
+    // Optimistic
+    setIssues(prev => prev.filter(i => i.id !== issueId))
+    try {
+      await fetch(`/api/projects/${id}/issues/${issueId}`, { method: 'DELETE' })
+    } catch {}
   }
 
   return (
