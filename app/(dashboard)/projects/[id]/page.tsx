@@ -1154,7 +1154,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           )}
         </div>
 
-        {/* Column 2: Team Members */}
+        {/* Column 2: Team Members — hidden from Client */}
+        {session?.user?.role !== 'CLIENT' && (
         <div className="card overflow-hidden">
           <div className="flex items-center gap-2 px-4 sm:px-5 py-3.5 border-b border-zinc-100">
             <Users size={16} className="text-[#0071E3]" />
@@ -1243,6 +1244,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             })}
           </div>
         </div>
+        )}
 
       </div>
 
@@ -1344,7 +1346,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   className="input text-sm"
                 >
                   <option value="">Saya sendiri</option>
-                  {project.members.map(m => (
+                  {project.members
+                    .filter(m => m.role === 'DEVELOPER' || m.role === 'PM')
+                    .map(m => (
                     <option key={m.user.id} value={m.user.id}>
                       {m.user.name} ({m.role})
                     </option>
