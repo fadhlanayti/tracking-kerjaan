@@ -1,6 +1,8 @@
 'use client'
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 import { Lock, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react'
 
 export default function ResetPasswordPage({
@@ -9,8 +11,10 @@ export default function ResetPasswordPage({
   params: Promise<{ token: string }>
 }) {
   const { token } = use(params)
+  const router = useRouter()
 
   const [userName, setUserName] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [password, setPassword] = useState('')
@@ -29,6 +33,7 @@ export default function ResetPasswordPage({
       })
       .then(data => {
         setUserName(data.name)
+        setUserEmail(data.email)
         setLoading(false)
       })
       .catch(err => {
@@ -64,9 +69,25 @@ export default function ResetPasswordPage({
       }
 
       setSuccess(true)
+
+      // Auto-login langsung ke dashboard
+      if (userEmail) {
+        const signInRes = await signIn('credentials', {
+          email: userEmail,
+          password,
+          redirect: false,
+        })
+
+        if (signInRes?.ok) {
+          router.push('/dashboard')
+          router.refresh()
+          return
+        }
+      }
+
+      router.push('/login')
     } catch (err: any) {
       setError(err.message)
-    } finally {
       setSubmitting(false)
     }
   }
