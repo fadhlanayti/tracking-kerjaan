@@ -23,41 +23,8 @@ const MIME_TYPES = {
 
 app.prepare().then(() => {
   const server = createServer((req, res) => {
-    const proto = (req.headers['x-forwarded-proto'] || 'http').split(',')[0].trim()
-    const url = new URL(req.url, `${proto}://${req.headers.host || 'localhost'}`)
-    const pathname = url.pathname
-
-    // If client requested via HTTPS, ensure any redirect Location header uses https://
-    if (proto === 'https') {
-      const origSetHeader = res.setHeader.bind(res)
-      res.setHeader = function(name, value) {
-        if (typeof name === 'string' && name.toLowerCase() === 'location' && typeof value === 'string') {
-          if (value.startsWith('http://')) {
-            value = value.replace('http://', 'https://')
-          }
-        }
-        return origSetHeader(name, value)
-      }
-
-      const origWriteHead = res.writeHead.bind(res)
-      res.writeHead = function(statusCode, ...args) {
-        let headers = args[args.length - 1]
-        if (headers && typeof headers === 'object' && !Array.isArray(headers)) {
-          for (const key of Object.keys(headers)) {
-            if (key.toLowerCase() === 'location' && typeof headers[key] === 'string') {
-              if (headers[key].startsWith('http://')) {
-                headers[key] = headers[key].replace('http://', 'https://')
-              }
-            }
-          }
-        }
-        const currentLoc = res.getHeader('location')
-        if (typeof currentLoc === 'string' && currentLoc.startsWith('http://')) {
-          res.setHeader('location', currentLoc.replace('http://', 'https://'))
-        }
-        return origWriteHead(statusCode, ...args)
-      }
-    }
+    const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`)
+    const pathname = parsedUrl.pathname
 
     // Directly serve /uploads/* from public/uploads at HTTP level
     if (pathname.startsWith('/uploads/')) {
@@ -79,7 +46,7 @@ app.prepare().then(() => {
       }
     }
 
-    handle(req, res, url)
+    handle(req, res)
   })
 
   const io = new Server(server, {
