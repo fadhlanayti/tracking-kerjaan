@@ -26,30 +26,6 @@ app.prepare().then(() => {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`)
     const pathname = url.pathname
 
-    // Fix https redirect loop: inject X-Forwarded-Proto so Next.js generates https:// URLs
-    // This runs before Next.js handles the request
-    if (!req.headers['x-forwarded-proto']) {
-      req.headers['x-forwarded-proto'] = 'https'
-    }
-
-    // Intercept 3xx redirects and rewrite http:// → https:// in Location header
-    const origWriteHead = res.writeHead.bind(res)
-    res.writeHead = function(statusCode, headers) {
-      if (statusCode >= 300 && statusCode < 400) {
-        const loc = (headers && (headers['Location'] || headers['location'])) ||
-                    res.getHeader('location')
-        if (loc && typeof loc === 'string' && loc.startsWith('http://')) {
-          const fixed = loc.replace('http://', 'https://')
-          if (headers) {
-            if (headers['Location']) headers['Location'] = fixed
-            else if (headers['location']) headers['location'] = fixed
-          }
-          res.setHeader('Location', fixed)
-        }
-      }
-      return origWriteHead(statusCode, headers)
-    }
-
     // Directly serve /uploads/* from public/uploads at HTTP level
     if (pathname.startsWith('/uploads/')) {
       const filename = pathname.replace(/^\/uploads\//, '').replace(/[^a-zA-Z0-9._-]/g, '')
