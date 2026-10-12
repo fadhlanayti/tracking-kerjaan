@@ -71,6 +71,41 @@ Issue: #${data.issueId} ${data.issueTitle}
 Buka: ${data.appUrl}/projects/${data.projectId}/issues/${data.issueId}`
 }
 
+export function formatTicketNew(data: {
+  creatorName: string
+  projectName: string
+  ticketTitle: string
+  ticketType: string
+  projectId: string
+  appUrl: string
+}): string {
+  const typeLabel: Record<string, string> = {
+    DEPLOY: '🚀 Deploy',
+    FEATURE: '✨ Fitur Baru',
+    BUGFIX: '🐛 Bugfix',
+    OTHER: '📋 Lainnya',
+  }
+  return `[WeballCreative] Ticket baru perlu review PM:\nProyek: ${data.projectName}\nDari: ${data.creatorName}\nTipe: ${typeLabel[data.ticketType] || data.ticketType}\nJudul: "${data.ticketTitle}"\nBuka: ${data.appUrl}/projects/${data.projectId}/tickets`
+}
+
+export function formatTicketStatus(data: {
+  status: string
+  ticketTitle: string
+  projectName: string
+  pmNotes?: string | null
+  projectId: string
+  appUrl: string
+}): string {
+  const statusLabel: Record<string, string> = {
+    APPROVED: '✅ Disetujui',
+    REJECTED: '❌ Ditolak',
+    REVISION: '✏️ Perlu Revisi',
+  }
+  const label = statusLabel[data.status] || data.status
+  const notes = data.pmNotes ? `\nCatatan: ${data.pmNotes}` : ''
+  return `[WeballCreative] Update ticket kamu:\nProyek: ${data.projectName}\nTicket: "${data.ticketTitle}"\nStatus: ${label}${notes}\nBuka: ${data.appUrl}/projects/${data.projectId}/tickets`
+}
+
 export function formatInvite(inviteUrl: string): string {
   return `[WeballCreative] Kamu diundang ke platform project management kami.
 Klik link berikut untuk bergabung:

@@ -78,6 +78,14 @@ export async function PATCH(
       message: `Ticket "${existing.title}" ${statusLabel[body.status] || body.status}${body.pmNotes ? `: ${body.pmNotes}` : ''} — ${existing.project.name}`,
       referenceId: ticketId,
       referenceType: 'ticket',
+      waMessage: (await import('@/lib/whatsapp')).formatTicketStatus({
+        status: body.status,
+        ticketTitle: existing.title,
+        projectName: existing.project.name,
+        pmNotes: body.pmNotes,
+        projectId: id,
+        appUrl: process.env.APP_URL || '',
+      }),
     })
   }
 

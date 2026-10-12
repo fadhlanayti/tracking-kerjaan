@@ -87,6 +87,14 @@ export async function POST(
       message: `${session.user.name} membuat ticket: "${title}" di project ${project?.name || ''}`,
       referenceId: ticket.id,
       referenceType: 'ticket',
+      waMessage: (await import('@/lib/whatsapp')).formatTicketNew({
+        creatorName: session.user.name || 'User',
+        projectName: project?.name || '',
+        ticketTitle: title.trim(),
+        ticketType: type || 'OTHER',
+        projectId: id,
+        appUrl: process.env.APP_URL || '',
+      }),
     })
   }
 

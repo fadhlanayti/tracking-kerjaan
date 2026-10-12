@@ -3,14 +3,31 @@ import { useState, useEffect, useRef } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { Bell, LogOut, Menu } from 'lucide-react'
 import { useSidebar } from './providers'
+import { useRouter } from 'next/navigation'
 
 interface Notification {
-  id: string; title: string; message: string; read: boolean; createdAt: string
+  id: string
+  title: string
+  message: string
+  read: boolean
+  createdAt: string
+  referenceId?: string | null
+  referenceType?: string | null
+}
+
+function getNotifUrl(n: Notification): string | null {
+  if (!n.referenceId || !n.referenceType) return null
+  switch (n.referenceType) {
+    case 'ticket':   return null // need projectId — handled below via stored in message
+    case 'issue':    return null // need projectId
+    default:         return null
+  }
 }
 
 export function Topbar() {
   const { data: session } = useSession()
   const { toggle } = useSidebar()
+  const router = useRouter()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [showNotifs, setShowNotifs] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
@@ -35,9 +52,34 @@ export function Topbar() {
 
   const unread = notifications.filter(n => !n.read).length
 
-  async function markRead(id: string) {
-    await fetch(`/api/notifications/${id}/read`, { method: 'PATCH' })
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+  async function handleNotifClick(n: Notification) {
+    // Mark read
+    await fetch(`/api/notifications/${n.id}/read`, { method: 'PATCH' })
+    setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))
+    setShowNotifs(false)
+
+    // Navigate based on referenceType
+    if (!n.referenceId || !n.referenceType) return
+
+    switch (n.referenceType) {
+      case 'ticket': {
+        // Extract projectId from notification message via API
+        const res = await fetch(`/api/notifications/${n.id}/navigate`)
+        if (res.ok) {
+          const { url } = await res.json()
+          if (url) router.push(url)
+        }
+        break
+      }
+      case 'issue': {
+        const res = await fetch(`/api/notifications/${n.id}/navigate`)
+        if (res.ok) {
+          const { url } = await res.json()
+          if (url) router.push(url)
+        }
+        break
+      }
+    }
   }
 
   return (
@@ -86,7 +128,7 @@ export function Topbar() {
               ) : notifications.slice(0, 20).map(n => (
                 <div
                   key={n.id}
-                  onClick={() => markRead(n.id)}
+                  onClick={() => handleNotifClick(n)}
                   className="px-3 py-2.5 cursor-pointer transition-colors"
                   style={{
                     borderBottom: '1px solid var(--border)',
@@ -97,6 +139,9 @@ export function Topbar() {
                 >
                   <p className="text-sm font-medium text-primary">{n.title}</p>
                   <p className="text-xs mt-0.5 text-muted">{n.message}</p>
+                  {n.referenceType && (
+                    <p className="text-xs mt-1 font-semibold" style={{ color: 'var(--accent)' }}>Klik untuk buka →</p>
+                  )}
                 </div>
               ))}
             </div>

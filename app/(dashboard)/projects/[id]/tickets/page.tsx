@@ -1,7 +1,7 @@
 'use client'
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useRef } from 'react'
 import { useSession } from 'next-auth/react'
-import { Plus, X, Clock, ArrowLeft, Ticket, Trash2, RotateCcw } from 'lucide-react'
+import { Plus, X, ArrowLeft, Ticket, Trash2, RotateCcw, Image as ImageIcon } from 'lucide-react'
 import Link from 'next/link'
 
 interface TicketItem {
@@ -49,6 +49,23 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
   const [description, setDescription] = useState('')
   const [type, setType] = useState('OTHER')
   const [submitting, setSubmitting] = useState(false)
+  const [pendingFiles, setPendingFiles] = useState<{ file: File; preview: string }[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  function handlePickFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    const newFiles = Array.from(files).map(file => ({ file, preview: URL.createObjectURL(file) }))
+    setPendingFiles(prev => [...prev, ...newFiles])
+    if (e.target) e.target.value = ''
+  }
+
+  function removePendingFile(i: number) {
+    setPendingFiles(prev => {
+      URL.revokeObjectURL(prev[i].preview)
+      return prev.filter((_, idx) => idx !== i)
+    })
+  }
 
   // PM review
   const [reviewingId, setReviewingId] = useState<string | null>(null)
@@ -81,10 +98,23 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
     e.preventDefault()
     if (!title.trim()) return
     setSubmitting(true)
+
+    // Upload files first
+    const uploadedUrls: string[] = []
+    for (const { file } of pendingFiles) {
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        const res = await fetch('/api/upload', { method: 'POST', body: formData })
+        const data = await res.json()
+        if (data.url) uploadedUrls.push(data.url)
+      } catch {}
+    }
+
     const res = await fetch(`/api/projects/${id}/tickets`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description, type }),
+      body: JSON.stringify({ title, description, type, attachments: uploadedUrls }),
     })
     if (res.ok) {
       const ticket = await res.json()
@@ -92,6 +122,8 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
       setTitle('')
       setDescription('')
       setType('OTHER')
+      pendingFiles.forEach(f => URL.revokeObjectURL(f.preview))
+      setPendingFiles([])
       setShowModal(false)
     }
     setSubmitting(false)
@@ -243,6 +275,17 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                   </div>
                 </div>
 
+                {/* Attachments */}
+                {Array.isArray(ticket.attachments) && ticket.attachments.length > 0 && (
+                  <div className="flex gap-2 flex-wrap" style={{ marginTop: '0.75rem' }}>
+                    {(ticket.attachments as string[]).map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                        <img src={url} alt={`lampiran ${i + 1}`} style={{ width: '4rem', height: '4rem', objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
+                      </a>
+                    ))}
+                  </div>
+                )}
+
                 {/* PM Notes */}
                 {ticket.pmNotes && !isReviewing && (
                   <div style={{
@@ -393,6 +436,40 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                   placeholder="Jelaskan perubahan yang diminta, environment target, dll..."
                   className="input text-sm resize-none w-full"
                 />
+              </div>
+
+              <div>
+                <label className="label text-xs font-semibold mb-1.5 block">Lampiran Foto <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opsional)</span></label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePickFiles}
+                />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="btn-secondary text-xs"
+                    style={{ padding: '0.4rem 0.75rem' }}
+                  >
+                    <ImageIcon size={13} /> Pilih Foto
+                  </button>
+                  {pendingFiles.map((p, i) => (
+                    <div key={i} className="relative w-12 h-12 rounded-lg border border-zinc-200 overflow-hidden group">
+                      <img src={p.preview} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removePendingFile(i)}
+                        className="absolute inset-0 bg-red-600/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border-none cursor-pointer"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="flex justify-end gap-2" style={{ paddingTop: '0.5rem', borderTop: '1px solid var(--border)' }}>
