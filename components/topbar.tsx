@@ -182,14 +182,15 @@ export function Topbar() {
                       onTouchMove={e => onTouchMove(n.id, e)}
                       onTouchEnd={() => onTouchEnd(n.id)}
                     >
-                      {/* Swipe delete background */}
-                      <div style={{
-                        position: 'absolute', right: 0, top: 0, bottom: 0, width: 80,
-                        backgroundColor: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        pointerEvents: 'none',
-                      }}>
-                        <X size={16} color="white" />
-                      </div>
+                      {/* Swipe delete background — only visible during swipe */}
+                      {(swipeX[n.id] || 0) < -10 && (
+                        <div style={{
+                          position: 'absolute', right: 0, top: 0, bottom: 0, width: 80,
+                          backgroundColor: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <X size={16} color="white" />
+                        </div>
+                      )}
 
                       <div
                         onClick={() => handleNotifClick(n)}
@@ -216,15 +217,6 @@ export function Topbar() {
                             <p className="text-xs mt-0.5 font-semibold" style={{ color: 'var(--accent)' }}>Klik untuk buka →</p>
                           )}
                         </div>
-                        {/* Delete button (desktop) */}
-                        <button
-                          onClick={e => deleteNotif(e, n.id)}
-                          className="shrink-0 p-1 rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer border-none bg-transparent text-muted hover:text-red-500"
-                          style={{ marginTop: '-0.125rem' }}
-                          title="Hapus notifikasi"
-                        >
-                          <X size={13} />
-                        </button>
                       </div>
                     </div>
                   ))}
