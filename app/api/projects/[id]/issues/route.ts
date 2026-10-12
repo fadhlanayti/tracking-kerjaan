@@ -50,6 +50,11 @@ export async function POST(
   const { title, description, priority, attachments, projectUpdateId } = await req.json()
   if (!title) return NextResponse.json({ error: 'Title required' }, { status: 400 })
 
+  // Client tidak bisa create issue langsung — harus lewat ticket
+  if (session.user.role === 'CLIENT') {
+    return NextResponse.json({ error: 'Client harus membuat ticket terlebih dahulu' }, { status: 403 })
+  }
+
   const issue = await prisma.issue.create({
     data: {
       projectId: id,

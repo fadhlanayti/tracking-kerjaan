@@ -76,7 +76,7 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
     )
   }
 
-  const canCreate = session?.user?.role === 'ADMIN' || session?.user?.role === 'CLIENT'
+  const canCreate = session?.user?.role === 'ADMIN'
   const canUpdateStatus = session?.user?.role === 'ADMIN' || session?.user?.role === 'DEVELOPER'
   const canDelete = session?.user?.role === 'ADMIN'
 
@@ -213,6 +213,18 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
           Total: <strong style={{ color: 'var(--text-primary)' }}>{issues.length}</strong> issue
         </div>
       </div>
+
+      {/* Client info banner */}
+      {session?.user?.role === 'CLIENT' && (
+        <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', backgroundColor: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.15)' }}>
+          <p className="text-sm" style={{ color: '#7C3AED', margin: 0 }}>
+            💡 Ingin melaporkan masalah? Buat <strong>Ticket</strong> terlebih dahulu untuk disetujui PM.
+          </p>
+          <Link href={`/projects/${id}/tickets`} className="btn-primary text-xs" style={{ flexShrink: 0, textDecoration: 'none' }}>
+            Buat Ticket
+          </Link>
+        </div>
+      )}
 
       {/* Issues list - Modern Cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
