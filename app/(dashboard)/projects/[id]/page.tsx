@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Users,
   ArrowRight,
+  Ticket,
   UserPlus,
   X,
   Check,
@@ -209,13 +210,16 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       .catch(() => setLoading(false))
   }
 
+  const [updatesLoading, setUpdatesLoading] = useState(true)
+
   function fetchUpdates() {
     fetch(`/api/projects/${id}/updates`)
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) setUpdates(data)
+        setUpdatesLoading(false)
       })
-      .catch(() => {})
+      .catch(() => setUpdatesLoading(false))
   }
 
   useEffect(() => {
@@ -234,7 +238,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     })
 
     function handleNewUpdate(newUpdate: ProjectUpdate) {
-      setUpdates(prev => [newUpdate, ...prev])
+      setUpdates(prev => {
+        // Cegah duplikasi jika sudah ada id yang sama atau update optimistic (temp-)
+        const exists = prev.some(u => u.id === newUpdate.id)
+        if (exists) return prev
+
+        const tempIndex = prev.findIndex(u => u.id.startsWith('temp-') && u.title === newUpdate.title)
+        if (tempIndex !== -1) {
+          const next = [...prev]
+          next[tempIndex] = { ...newUpdate, timelineLogs: next[tempIndex].timelineLogs || newUpdate.timelineLogs || [] }
+          return next
+        }
+
+        return [newUpdate, ...prev]
+      })
     }
 
     function handleStatusUpdate(updatedRecord: ProjectUpdate) {
@@ -680,7 +697,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       </div>
 
       {/* Quick Navigation Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <Link
           href={`/projects/${id}/issues`}
           className="card p-4 sm:p-5 flex items-center justify-between no-underline group hover:border-[#0071E3]/30 transition-all active:scale-[0.99]"
@@ -692,6 +709,22 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             <div>
               <p className="text-sm font-semibold text-zinc-900 group-hover:text-[#0071E3] transition-colors">Issue Tracker</p>
               <p className="text-xs text-zinc-500 mt-0.5">{project._count.issues} Total issues</p>
+            </div>
+          </div>
+          <ArrowRight size={18} className="text-zinc-400 group-hover:text-zinc-600 group-hover:translate-x-0.5 transition-all" />
+        </Link>
+
+        <Link
+          href={`/projects/${id}/tickets`}
+          className="card p-4 sm:p-5 flex items-center justify-between no-underline group hover:border-purple-400/30 transition-all active:scale-[0.99]"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-purple-50 text-purple-600 border border-purple-100">
+              <Ticket size={22} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-zinc-900 group-hover:text-purple-600 transition-colors">Tickets</p>
+              <p className="text-xs text-zinc-500 mt-0.5">Request & approval</p>
             </div>
           </div>
           <ArrowRight size={18} className="text-zinc-400 group-hover:text-zinc-600 group-hover:translate-x-0.5 transition-all" />
@@ -735,7 +768,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           </div>
 
           {/* List of Updates */}
-          {updates.length === 0 ? (
+          {updatesLoading ? (
+            <div className="card flex items-center justify-center text-zinc-400" style={{ padding: '3.5rem 2rem', minHeight: '12rem' }}>
+              <Loader2 size={24} className="animate-spin text-[#0071E3]" />
+            </div>
+          ) : updates.length === 0 ? (
             <div className="card flex flex-col items-center justify-center text-center" style={{ padding: '3.5rem 2rem', minHeight: '20rem', gap: '0.75rem' }}>
               <div className="w-16 h-16 rounded-2xl bg-blue-50 text-[#0071E3] flex items-center justify-center" style={{ marginBottom: '0.5rem' }}>
                 <Layers size={30} />

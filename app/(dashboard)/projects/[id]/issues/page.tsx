@@ -2,7 +2,7 @@
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { Plus, MessageSquare, User, Filter, AlertCircle, ArrowUpRight } from 'lucide-react'
+import { Plus, MessageSquare, User, Filter, AlertCircle, ArrowUpRight, Trash2 } from 'lucide-react'
 import { StatusBadge, statusLabels } from '@/components/status-badge'
 
 interface Issue {
@@ -78,6 +78,13 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
 
   const canCreate = session?.user?.role === 'ADMIN' || session?.user?.role === 'CLIENT'
   const canUpdateStatus = session?.user?.role === 'ADMIN' || session?.user?.role === 'DEVELOPER'
+  const canDelete = session?.user?.role === 'ADMIN'
+
+  async function deleteIssue(issueId: string) {
+    if (!confirm('Hapus issue ini secara permanen?')) return
+    const res = await fetch(`/api/projects/${id}/issues/${issueId}`, { method: 'DELETE' })
+    if (res.ok) setIssues(prev => prev.filter(i => i.id !== issueId))
+  }
 
   return (
     <div style={{ width: '100%', maxWidth: 1024, margin: '0 auto', paddingTop: '0.75rem', paddingBottom: '4rem' }}>
@@ -280,6 +287,17 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
                     <span>Detail</span>
                     <ArrowUpRight size={13} />
                   </Link>
+
+                  {canDelete && (
+                    <button
+                      onClick={() => deleteIssue(issue.id)}
+                      className="inline-flex items-center justify-center p-1.5 rounded-full text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                      style={{ background: 'none', border: 'none' }}
+                      title="Hapus issue"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
 
               </div>

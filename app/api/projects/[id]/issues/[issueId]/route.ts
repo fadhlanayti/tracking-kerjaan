@@ -144,3 +144,35 @@ export async function PATCH(
 
   return NextResponse.json(issue)
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string; issueId: string }> }
+) {
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { id, issueId } = await params
+
+  const existing = await prisma.issue.findUnique({
+    where: { id: issueId },
+    select: { createdById: true },
+  })
+  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  const isPMorAdmin = session.user.role === 'ADMIN' || !!(await prisma.projectMember.findFirst({
+    where: { projectId: id, userId: session.user.id, role: 'PM' },
+  }))
+
+  if (!isPMorAdmin && existing.createdById !== session.user.id) {
+    return NextResponse.json({ error: 'Hanya PM atau Admin yang bisa menghapus issue' }, { status: 403 })
+  }
+
+  await prisma.issue.delete({ where: { id: issueId } })
+
+  if ((globalThis as any).__io) {
+    (globalThis as any).__io.to(`project:${id}`).emit('issue:deleted', { id: issueId })
+  }
+
+  return NextResponse.json({ success: true })
+}

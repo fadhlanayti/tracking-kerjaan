@@ -74,6 +74,7 @@ model User {
   activities       IssueActivity[]
   messages         ChatMessage[]
   notifications    Notification[]
+  tickets          Ticket[]         @relation("TicketCreator")
 }
 
 model Project {
@@ -89,6 +90,7 @@ model Project {
   members     ProjectMember[]
   issues      Issue[]
   updates     ProjectUpdate[]
+  tickets     Ticket[]
   channel     ChatChannel?
 }
 
@@ -193,6 +195,37 @@ enum ProgressStatus {
   DO
   DOING
   DONE
+}
+
+enum TicketStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVISION
+}
+
+enum TicketType {
+  DEPLOY
+  FEATURE
+  BUGFIX
+  OTHER
+}
+
+model Ticket {
+  id          String       @id @default(cuid())
+  projectId   String
+  createdById String
+  title       String
+  description String?      @db.Text
+  type        TicketType   @default(OTHER)
+  status      TicketStatus @default(PENDING)
+  pmNotes     String?      @db.Text
+  attachments Json         @default("[]")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User    @relation("TicketCreator", fields: [createdById], references: [id])
 }
 
 model ProjectUpdate {
