@@ -174,10 +174,15 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
                     {msg.attachments?.length > 0 && (
                       <div style={{ marginTop: '0.375rem' }}>
                         {msg.attachments.map((url, i) => {
-                          if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-                            return <img key={i} src={url} alt="" style={{ maxWidth: '12rem', borderRadius: '0.5rem', marginTop: '0.25rem', display: 'block' }} />
+                          const isImg = url.startsWith('blob:') || url.startsWith('data:image/') || /\.(jpg|jpeg|png|gif|webp|svg|avif)$/i.test(url.split('?')[0]) || url.startsWith('/uploads/')
+                          if (isImg) {
+                            return (
+                              <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: '0.25rem' }}>
+                                <img src={url} alt="attachment" style={{ maxWidth: '14rem', width: '100%', borderRadius: '0.5rem', display: 'block' }} />
+                              </a>
+                            )
                           }
-                          return <a key={i} href={url} target="_blank" rel="noopener" className="text-xs underline" style={{ color: isMe ? 'rgba(255,255,255,0.8)' : 'var(--accent)', display: 'block', marginTop: '0.25rem' }}>File {i+1}</a>
+                          return <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-xs underline" style={{ color: isMe ? 'rgba(255,255,255,0.8)' : 'var(--accent)', display: 'block', marginTop: '0.25rem' }}>File {i+1}</a>
                         })}
                       </div>
                     )}

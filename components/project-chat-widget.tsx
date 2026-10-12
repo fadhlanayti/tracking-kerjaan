@@ -205,10 +205,15 @@ export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: s
                       {msg.attachments?.length > 0 && (
                         <div className="mt-2 flex flex-col gap-1.5">
                           {msg.attachments.map((url, i) => {
-                            if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-                              return <img key={i} src={url} alt="attachment" className="max-w-[200px] w-full rounded-lg object-cover border border-white/5" />
+                            const isImg = url.startsWith('blob:') || url.startsWith('data:image/') || /\.(jpg|jpeg|png|gif|webp|svg|avif)$/i.test(url.split('?')[0]) || url.startsWith('/uploads/')
+                            if (isImg) {
+                              return (
+                                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
+                                  <img src={url} alt="attachment" className="max-w-[220px] w-full rounded-lg object-cover border border-white/10 hover:opacity-90 transition-opacity" />
+                                </a>
+                              )
                             }
-                            return <a key={i} href={url} target="_blank" rel="noopener" className="underline opacity-90 block">File {i+1}</a>
+                            return <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="underline opacity-90 block">File {i+1}</a>
                           })}
                         </div>
                       )}
