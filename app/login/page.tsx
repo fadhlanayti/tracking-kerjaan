@@ -44,38 +44,41 @@ export default function LoginPage() {
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Project Tracker</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="label">Email</label>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-1.5">
+            <label className="label mb-1">Email</label>
             <input
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
+              placeholder="nama@email.com"
               className="input"
             />
           </div>
-          <div>
-            <label className="label">Password</label>
+          <div className="space-y-1.5">
+            <label className="label mb-1">Password</label>
             <input
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
+              placeholder="••••••••"
               className="input"
             />
           </div>
 
-          {error && <p className="error-text">{error}</p>}
+          {error && <p className="error-text text-sm">{error}</p>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary w-full justify-center py-2.5"
-            style={{ marginTop: '0.75rem' }}
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
+          <div className="pt-3">
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full justify-center py-3 text-sm font-semibold"
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+          </div>
         </form>
       </div>
     </div>
