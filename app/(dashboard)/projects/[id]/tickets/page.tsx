@@ -160,23 +160,35 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
   }
 
   async function reviewTicket(ticketId: string) {
-    const res = await fetch(`/api/projects/${id}/tickets/${ticketId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: reviewStatus, pmNotes: pmNotes.trim() || null }),
-    })
-    if (res.ok) {
-      const updated = await res.json()
-      setTickets(prev => prev.map(t => t.id === ticketId ? updated : t))
-      setReviewingId(null)
-      setPmNotes('')
+    const currentStatus = reviewStatus
+    const currentNotes = pmNotes.trim() || null
+
+    // Optimistic: langsung update UI + tutup panel
+    setTickets(prev => prev.map(t => t.id === ticketId
+      ? { ...t, status: currentStatus, pmNotes: currentNotes }
+      : t
+    ))
+    setReviewingId(null)
+    setPmNotes('')
+
+    // Simpan ke server di background
+    try {
+      await fetch(`/api/projects/${id}/tickets/${ticketId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: currentStatus, pmNotes: currentNotes }),
+      })
+    } catch (err) {
+      console.error(err)
     }
   }
 
   async function deleteTicket(ticketId: string) {
     if (!confirm('Hapus ticket ini?')) return
-    const res = await fetch(`/api/projects/${id}/tickets/${ticketId}`, { method: 'DELETE' })
-    if (res.ok) setTickets(prev => prev.filter(t => t.id !== ticketId))
+    setTickets(prev => prev.filter(t => t.id !== ticketId))
+    try {
+      await fetch(`/api/projects/${id}/tickets/${ticketId}`, { method: 'DELETE' })
+    } catch {}
   }
 
   const isCreatorOrPM = (t: TicketItem) => isPMorAdmin || t.createdBy.id === (session?.user as any)?.id
