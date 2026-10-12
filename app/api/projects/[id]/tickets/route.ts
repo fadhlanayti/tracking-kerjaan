@@ -43,6 +43,14 @@ export async function POST(
     return NextResponse.json({ error: 'Judul ticket wajib diisi' }, { status: 400 })
   }
 
+  // PM dan Admin tidak bisa buat ticket — hanya review
+  const isPM = session.user.role === 'ADMIN' || await prisma.projectMember.findFirst({
+    where: { projectId: id, userId: session.user.id, role: 'PM' },
+  })
+  if (isPM) {
+    return NextResponse.json({ error: 'PM tidak perlu membuat ticket, langsung approve/reject saja' }, { status: 403 })
+  }
+
   const ticket = await prisma.ticket.create({
     data: {
       projectId: id,

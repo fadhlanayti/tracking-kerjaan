@@ -59,6 +59,9 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
   const isPM = session?.user?.role === 'ADMIN' ||
     members.some(m => m.user.id === (session?.user as any)?.id && m.role === 'PM')
 
+  // Only Developer/Client can create tickets — PM only reviews
+  const canCreate = !isPM
+
   useEffect(() => {
     fetch(`/api/projects/${id}`)
       .then(r => r.json())
@@ -120,27 +123,32 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
   if (loading) return <div className="loading-state">Loading...</div>
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto' }}>
+    <div style={{ width: '100%', maxWidth: 1100, margin: '0 auto', paddingBottom: '3rem' }}>
       {/* Header */}
       <div className="flex items-center justify-between" style={{ marginBottom: '1.5rem' }}>
         <div className="flex items-center gap-3">
           <Link href={`/projects/${id}`} style={{ color: 'var(--text-muted)', display: 'flex' }}>
             <ArrowLeft size={18} />
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <div style={{
-              width: '2rem', height: '2rem', borderRadius: '0.625rem',
+              width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem',
               backgroundColor: 'rgba(139,92,246,0.1)', color: '#7C3AED',
               display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}>
-              <Ticket size={14} />
+              <Ticket size={18} />
             </div>
-            <h1 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>Tickets</h1>
+            <div>
+              <h1 className="text-lg font-bold" style={{ color: 'var(--text-primary)', margin: 0 }}>Tickets</h1>
+              <p className="text-xs" style={{ color: 'var(--text-muted)', margin: 0 }}>Request & approval system</p>
+            </div>
           </div>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary text-xs">
-          <Plus size={14} /> Buat Ticket
-        </button>
+        {canCreate && (
+          <button onClick={() => setShowModal(true)} className="btn-primary text-sm">
+            <Plus size={16} /> Buat Ticket
+          </button>
+        )}
       </div>
 
       {/* Filter Tabs */}
@@ -165,13 +173,15 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
       {tickets.length === 0 ? (
         <div className="card flex flex-col items-center justify-center text-center" style={{ padding: '3rem 2rem', gap: '0.75rem' }}>
           <Ticket size={32} style={{ color: 'var(--border)' }} />
-          <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>Belum ada ticket</p>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          <p className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>Belum ada ticket</p>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             Buat ticket untuk meminta persetujuan PM sebelum membuat issue baru.
           </p>
-          <button onClick={() => setShowModal(true)} className="btn-primary text-xs" style={{ marginTop: '0.5rem' }}>
+          {canCreate && (
+          <button onClick={() => setShowModal(true)} className="btn-primary text-sm" style={{ marginTop: '0.5rem' }}>
             <Plus size={14} /> Buat Ticket Pertama
           </button>
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -180,7 +190,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
             const isReviewing = reviewingId === ticket.id
 
             return (
-              <div key={ticket.id} className="card" style={{ padding: '1.25rem 1.5rem' }}>
+              <div key={ticket.id} className="card" style={{ padding: '1.5rem 1.75rem' }}>
                 {/* Top row */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -197,15 +207,15 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                         {sc.label}
                       </span>
                     </div>
-                    <p className="font-bold text-sm" style={{ color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                    <p className="font-bold text-base" style={{ color: 'var(--text-primary)', marginBottom: '0.375rem' }}>
                       {ticket.title}
                     </p>
                     {ticket.description && (
-                      <p className="text-xs" style={{ color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                      <p className="text-sm" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
                         {ticket.description}
                       </p>
                     )}
-                    <p className="text-xs" style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                    <p className="text-sm" style={{ color: 'var(--text-muted)', marginTop: '0.625rem' }}>
                       oleh <strong>{ticket.createdBy.name}</strong> · {new Date(ticket.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
@@ -263,8 +273,8 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                     marginTop: '1rem', borderTop: '1px solid var(--border)',
                     backgroundColor: 'var(--bg-elevated)',
                     borderRadius: '0 0 0.75rem 0.75rem',
-                    margin: '1rem -1.5rem -1.25rem',
-                    padding: '1rem 1.5rem 1.25rem'
+                    margin: '1rem -1.75rem -1.5rem',
+                    padding: '1.25rem 1.75rem 1.5rem'
                   }}>
                     <p className="text-xs font-bold" style={{ color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
                       Review Ticket
@@ -320,7 +330,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
       {/* Create Ticket Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="card w-full shadow-2xl" style={{ maxWidth: 520, padding: '1.75rem', borderRadius: '1.25rem' }}>
+          <div className="card w-full shadow-2xl" style={{ maxWidth: 600, padding: '2rem', borderRadius: '1.25rem' }}>
             <div className="flex items-center justify-between" style={{ marginBottom: '1.25rem' }}>
               <div className="flex items-center gap-2.5">
                 <div style={{
