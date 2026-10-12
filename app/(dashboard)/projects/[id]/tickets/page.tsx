@@ -72,12 +72,16 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
   const [pmNotes, setPmNotes] = useState('')
   const [reviewStatus, setReviewStatus] = useState<'APPROVED' | 'REJECTED' | 'REVISION'>('APPROVED')
 
-  // Detect PM role from project members
-  const isPM = session?.user?.role === 'ADMIN' ||
+  // Role detection — PM dan Admin punya hak sama
+  const isPMorAdmin = session?.user?.role === 'ADMIN' ||
     members.some(m => m.user.id === (session?.user as any)?.id && m.role === 'PM')
 
-  // Only Developer/Client can create tickets — PM only reviews
-  const canCreate = !isPM
+  // PM/Admin tidak buat ticket, hanya review. Developer & Client bisa buat.
+  const canCreate = !isPMorAdmin
+
+  // PM/Admin bisa hapus semua. Creator bisa hapus milik sendiri.
+  const canDelete = (t: TicketItem) =>
+    isPMorAdmin || t.createdBy.id === (session?.user as any)?.id
 
   useEffect(() => {
     fetch(`/api/projects/${id}`)
@@ -149,8 +153,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
     if (res.ok) setTickets(prev => prev.filter(t => t.id !== ticketId))
   }
 
-  const isCreatorOrPM = (t: TicketItem) =>
-    t.createdBy.id === (session?.user as any)?.id || isPM
+  const isCreatorOrPM = (t: TicketItem) => isPMorAdmin || t.createdBy.id === (session?.user as any)?.id
 
   if (loading) return <div className="loading-state">Loading...</div>
 
@@ -254,7 +257,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
 
                   {/* Actions */}
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {isPM && ticket.status === 'PENDING' && (
+                    {isPMorAdmin && ticket.status === 'PENDING' && (
                       <button
                         onClick={() => { setReviewingId(isReviewing ? null : ticket.id); setPmNotes(''); setReviewStatus('APPROVED') }}
                         className="btn-primary text-xs"
@@ -263,7 +266,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                         Review
                       </button>
                     )}
-                    {isCreatorOrPM(ticket) && (
+                    {canDelete(ticket) && (
                       <button
                         onClick={() => deleteTicket(ticket.id)}
                         className="inline-flex items-center justify-center p-1.5 rounded-full text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
@@ -311,7 +314,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                 )}
 
                 {/* PM Review Panel */}
-                {isReviewing && isPM && (
+                {isReviewing && isPMorAdmin && (
                   <div style={{
                     marginTop: '1rem', borderTop: '1px solid var(--border)',
                     backgroundColor: 'var(--bg-elevated)',
