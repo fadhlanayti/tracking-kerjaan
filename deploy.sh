@@ -13,7 +13,14 @@ npx prisma db push
 echo "=== [4/5] Building Next.js application ==="
 npm run build
 
-echo "=== [5/5] Restarting PM2 process ==="
-pm2 restart track-kerjaan || pm2 restart all
+echo "=== [5/5] Reloading or starting application via PM2 ==="
+if pm2 describe track-kerjaan > /dev/null 2>&1; then
+  echo "Process track-kerjaan found. Restarting..."
+  pm2 restart track-kerjaan
+else
+  echo "Process track-kerjaan not found. Starting fresh..."
+  PORT=${PORT:-3005} pm2 start npm --name "track-kerjaan" -- run start
+fi
+pm2 save
 
 echo "=== Deployment completed successfully! ==="
