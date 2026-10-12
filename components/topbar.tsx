@@ -15,7 +15,7 @@ interface Notification {
   referenceType?: string | null
 }
 
-const NOTIF_LIMIT = 10
+const NOTIF_LIMIT = 4
 
 export function Topbar() {
   const { data: session } = useSession()
@@ -140,7 +140,7 @@ export function Topbar() {
                 width: 'auto',
                 maxWidth: '22rem',
                 marginLeft: 'auto',
-                maxHeight: 'min(28rem, calc(100vh - var(--topbar-height) - 2rem))',
+                maxHeight: 'min(22rem, calc(100vh - var(--topbar-height) - 2rem))',
                 overflowY: 'auto',
                 overflowX: 'hidden',
               }}

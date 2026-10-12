@@ -75,7 +75,7 @@ export async function PATCH(
       userId: existing.createdById,
       type: 'TICKET_STATUS',
       title: `Ticket ${statusLabel[body.status] || body.status}`,
-      message: `Ticket "${existing.title}" ${statusLabel[body.status] || body.status}${body.pmNotes ? `: ${body.pmNotes}` : ''} — ${existing.project.name}`,
+      message: `Ticket "${existing.title}" ${statusLabel[body.status] || body.status}${body.pmNotes ? `: ${body.pmNotes}` : ''} di ${existing.project.name}`,
       referenceId: ticketId,
       referenceType: 'ticket',
       waMessage: (await import('@/lib/whatsapp')).formatTicketStatus({

@@ -69,7 +69,7 @@ export default function InviteUserPage() {
               placeholder="087218381744"
               className="input"
             />
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Format bebas — otomatis dikonversi ke 62xxx</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Format bebas, otomatis dikonversi ke 62xxx</p>
           </div>
 
           {/* Role */}
