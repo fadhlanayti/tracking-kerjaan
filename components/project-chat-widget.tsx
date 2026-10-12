@@ -35,9 +35,10 @@ export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: s
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // 1. Fetch initial messages when chat drawer opens
   useEffect(() => {
     if (!isOpen) return
-    if (!loading) return
+    setLoading(true)
 
     fetch(`/api/projects/${projectId}/chat/messages`)
       .then(r => r.json())
@@ -46,6 +47,11 @@ export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: s
         setLoading(false)
       })
       .catch(() => setLoading(false))
+  }, [projectId, isOpen])
+
+  // 2. Realtime Socket listener — always active for this project room
+  useEffect(() => {
+    if (!projectId) return
 
     const socket = getSocket()
     const joinRoom = () => {
@@ -60,15 +66,16 @@ export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: s
     socket.on('connect', joinRoom)
 
     const handleNewMessage = (message: Message) => {
-      setMessages(prev => prev.some(m => m.id === message.id) ? prev : [...prev, message])
+      setMessages(prev => (prev.some(m => m.id === message.id) ? prev : [...prev, message]))
     }
 
     socket.on('message:new', handleNewMessage)
+
     return () => {
       socket.off('connect', joinRoom)
       socket.off('message:new', handleNewMessage)
     }
-  }, [projectId, isOpen, loading, session])
+  }, [projectId, session?.user?.id, session?.user?.name])
 
   useEffect(() => {
     if (isOpen) bottomRef.current?.scrollIntoView({ behavior: 'auto' })
