@@ -971,10 +971,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   {/* Update Header (Clickable Accordion) */}
                   <div
                     onClick={() => toggleUpdateExpand(up.id)}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer select-none"
+                    className="relative cursor-pointer select-none"
                   >
-                    <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
-                      <div className="text-zinc-400 hover:text-zinc-700 transition-colors shrink-0 mt-0.5 sm:mt-0">
+                    <div className="flex items-start gap-3 min-w-0 pr-16 sm:pr-24">
+                      <div className="text-zinc-400 hover:text-zinc-700 transition-colors shrink-0 mt-1">
                         {expandedUpdateIds[up.id] ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                       </div>
                       <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs text-white shrink-0 bg-gradient-to-br from-[#0071E3] to-[#0051A8] shadow-xs overflow-hidden">
@@ -984,20 +984,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           up.author.name[0].toUpperCase()
                         )}
                       </div>
-                      <div className="min-w-0 flex-1">
+                      <div className="min-w-0 flex-1 flex flex-col gap-1.5">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-bold text-zinc-900 break-words leading-tight">{up.title}</span>
+                          <span className="text-sm font-bold text-zinc-900 leading-snug">{up.title}</span>
                           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-700 bg-zinc-100/90 border border-zinc-200/80 px-2 py-0.5 rounded-full">
                             <span>oleh</span>
-                            <span className="text-zinc-900">{up.author.name}</span>
+                            <span className="text-zinc-900 truncate max-w-[120px]">{up.author.name}</span>
                           </span>
                           {up.status && (
-                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
                               up.status === 'DONE'
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/90 shadow-2xs'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/90'
                                 : up.status === 'DOING'
-                                ? 'bg-blue-50 text-blue-700 border border-blue-200/90 shadow-2xs'
-                                : 'bg-orange-50 text-orange-700 border border-orange-200/90 shadow-2xs'
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200/90'
+                                : 'bg-orange-50 text-orange-700 border border-orange-200/90'
                             }`}>
                               {up.status}
                             </span>
@@ -1005,7 +1005,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         </div>
 
                         {/* Metadata row with readable contrast & chips */}
-                        <div className="flex items-center flex-wrap gap-2 sm:gap-3 mt-1.5 text-xs text-zinc-600 font-medium">
+                        <div className="flex items-center flex-wrap gap-2 text-xs text-zinc-600 font-medium">
                           <span className="inline-flex items-center gap-1.5 bg-zinc-50 border border-zinc-200/70 px-2 py-0.5 rounded-md text-zinc-700 text-[11px]">
                             <Clock size={11} className="text-zinc-500 shrink-0" />
                             <span>{new Date(up.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
@@ -1022,15 +1022,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       </div>
                     </div>
 
-                    {/* Action Bar: Edit, Lapor Issue & Delete (inline with row, no extra vertical break) */}
+                    {/* Action Bar: Absolute top-right, no extra vertical break/space */}
                     <div
                       onClick={e => e.stopPropagation()}
-                      className="flex items-center gap-1.5 shrink-0 self-end sm:self-center"
+                      className="absolute top-0 right-0 flex items-center gap-1 shrink-0"
                     >
                       {(isAdmin || up.author.id === session?.user?.id) && (
                         <button
                           onClick={() => startEditUpdate(up)}
-                          className="inline-flex items-center justify-center p-1.5 rounded-lg text-sky-600 bg-sky-50 hover:bg-sky-100 hover:text-sky-700 transition-colors border border-sky-200/70 cursor-pointer shadow-2xs"
+                          className="inline-flex items-center justify-center p-1.5 rounded-lg text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors border border-sky-200/70 cursor-pointer shadow-2xs"
                           title="Edit progress ini"
                         >
                           <Edit2 size={13} />
@@ -1046,17 +1046,17 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             setIssueDescription('')
                             setIssueImages([])
                           }}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200/80 cursor-pointer shrink-0 shadow-2xs"
+                          className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200/80 cursor-pointer shrink-0 shadow-2xs"
                         >
-                          <Bug size={13} />
-                          <span className="hidden sm:inline">Lapor</span> Issue
+                          <Bug size={12} />
+                          <span className="hidden sm:inline text-[11px]">Issue</span>
                         </button>
                       )}
 
                       {(isAdmin || up.author.id === session?.user?.id) && (
                         <button
                           onClick={() => handleDeleteUpdate(up.id)}
-                          className="inline-flex items-center justify-center p-1.5 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-700 transition-colors border border-rose-200/70 cursor-pointer shadow-2xs"
+                          className="inline-flex items-center justify-center p-1.5 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors border border-rose-200/70 cursor-pointer shadow-2xs"
                           title="Hapus progress ini"
                         >
                           <Trash2 size={13} />
