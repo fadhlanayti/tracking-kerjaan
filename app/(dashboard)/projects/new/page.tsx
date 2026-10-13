@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, FolderPlus, Users } from 'lucide-react'
+import { TechStackSelector } from '@/components/tech-stack-selector'
 
 interface User {
   id: string
@@ -137,13 +138,9 @@ export default function NewProjectPage() {
                   <label className="label" style={{ fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.375rem', display: 'block' }}>
                     Tech Stack
                   </label>
-                  <input
-                    type="text"
+                  <TechStackSelector
                     value={techStack}
-                    onChange={e => setTechStack(e.target.value)}
-                    placeholder="e.g. Next.js, Flutter, Laravel"
-                    className="input"
-                    style={{ fontSize: '0.875rem' }}
+                    onChange={setTechStack}
                   />
                 </div>
               </div>

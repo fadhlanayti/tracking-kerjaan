@@ -1,0 +1,109 @@
+.root {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  padding: 0.5rem 0;
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 10%,
+    black 90%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 10%,
+    black 90%,
+    transparent 100%
+  );
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.viewport {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.track {
+  display: inline-flex;
+  will-change: transform;
+}
+
+.group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding-right: 0.625rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #18181B;
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 9999px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  user-select: none;
+  white-space: nowrap;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.badge:hover {
+  transform: translateY(-1px);
+  border-color: var(--tool-accent, rgba(0, 0, 0, 0.2));
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  color: var(--tool-accent, #0071E3);
+}
+
+.icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.control {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #52525B;
+  transition: all 0.15s ease;
+  z-index: 10;
+}
+
+.control:hover {
+  background: #FFFFFF;
+  color: #18181B;
+}
+
+.control svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}

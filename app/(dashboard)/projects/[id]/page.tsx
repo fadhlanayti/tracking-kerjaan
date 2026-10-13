@@ -30,6 +30,7 @@ import {
   UserCheck
 } from 'lucide-react'
 import { StatusBadge } from '@/components/status-badge'
+import { PRESET_TECHS, TechStackSelector } from '@/components/tech-stack-selector'
 import { getSocket } from '@/lib/socket-client'
 import { ProjectChatWidget } from '@/components/project-chat-widget'
 
@@ -809,9 +810,26 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   </h1>
                   <StatusBadge value={project.status} />
                   {project.techStack && (
-                    <span className="text-[11px] font-mono font-medium px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                      {project.techStack}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {project.techStack.split(',').map(s => s.trim()).filter(Boolean).map(techName => {
+                        const preset = PRESET_TECHS.find(p => p.name.toLowerCase() === techName.toLowerCase())
+                        return (
+                          <span
+                            key={techName}
+                            className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[#242426] text-zinc-100 border border-white/15 shadow-xs"
+                          >
+                            {preset ? (
+                              <span style={{ color: preset.accent }} className="flex items-center">
+                                {preset.icon}
+                              </span>
+                            ) : (
+                              <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                            )}
+                            <span>{techName}</span>
+                          </span>
+                        )
+                      })}
+                    </div>
                   )}
                   {project.repository && (
                     <a
@@ -1884,27 +1902,23 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="label text-xs font-semibold mb-1.5 block">Repository URL</label>
-                  <input
-                    type="url"
-                    value={editProjectRepository}
-                    onChange={e => setEditProjectRepository(e.target.value)}
-                    placeholder="https://github.com/..."
-                    className="input text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="label text-xs font-semibold mb-1.5 block">Tech Stack</label>
-                  <input
-                    type="text"
-                    value={editProjectTechStack}
-                    onChange={e => setEditProjectTechStack(e.target.value)}
-                    placeholder="Next.js, Tailwind, MySQL..."
-                    className="input text-sm"
-                  />
-                </div>
+              <div>
+                <label className="label text-xs font-semibold mb-1.5 block">Repository URL</label>
+                <input
+                  type="url"
+                  value={editProjectRepository}
+                  onChange={e => setEditProjectRepository(e.target.value)}
+                  placeholder="https://github.com/..."
+                  className="input text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="label text-xs font-semibold mb-1.5 block">Pilih Tech Stack</label>
+                <TechStackSelector
+                  value={editProjectTechStack}
+                  onChange={setEditProjectTechStack}
+                />
               </div>
 
               <div>
