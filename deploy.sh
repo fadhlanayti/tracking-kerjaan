@@ -2,7 +2,8 @@
 set -e
 
 echo "=== [1/5] Pulling latest changes from Git ==="
-git pull origin main
+git fetch origin main
+git reset --hard origin/main
 
 echo "=== [2/5] Installing dependencies ==="
 npm install
