@@ -2,50 +2,73 @@
 
 import * as React from "react"
 import {
-  Atom,
-  Braces,
-  Waves,
-  Sparkles,
-  Grid3X3,
-  AppWindow,
-  Wind,
-  Blocks,
-  Feather,
-  Zap,
-  Activity,
-  Box,
-  Orbit,
-  CirclePlay,
-  Cpu,
-  Check,
-  X
-} from "lucide-react"
+  SiNextdotjs,
+  SiReact,
+  SiTypescript,
+  SiJavascript,
+  SiTailwindcss,
+  SiFramer,
+  SiVuedotjs,
+  SiNodedotjs,
+  SiExpress,
+  SiLaravel,
+  SiGo,
+  SiPython,
+  SiFastapi,
+  SiFlutter,
+  SiPostgresql,
+  SiMysql,
+  SiPrisma,
+  SiDocker,
+  SiSupabase,
+  SiFirebase,
+  SiMongodb,
+  SiRedis
+} from "react-icons/si"
+import { Check, X } from "lucide-react"
 
 export interface TechItem {
   name: string
+  aliases?: string[]
   icon: React.ReactNode
   accent: string
   category: "Frontend" | "Backend" | "Mobile" | "Database/Tools"
 }
 
 export const PRESET_TECHS: TechItem[] = [
-  { name: "Next.js", icon: <AppWindow size={14} />, accent: "#18181B", category: "Frontend" },
-  { name: "React", icon: <Atom size={14} />, accent: "#0284C7", category: "Frontend" },
-  { name: "TypeScript", icon: <Braces size={14} />, accent: "#2563EB", category: "Frontend" },
-  { name: "Tailwind CSS", icon: <Wind size={14} />, accent: "#06B6D4", category: "Frontend" },
-  { name: "Framer Motion", icon: <Waves size={14} />, accent: "#8B5CF6", category: "Frontend" },
-  { name: "Vue.js", icon: <Sparkles size={14} />, accent: "#10B981", category: "Frontend" },
-  { name: "Node.js", icon: <Cpu size={14} />, accent: "#16A34A", category: "Backend" },
-  { name: "Laravel", icon: <Zap size={14} />, accent: "#EF4444", category: "Backend" },
-  { name: "Golang", icon: <Activity size={14} />, accent: "#00ADD8", category: "Backend" },
-  { name: "Python / FastAPI", icon: <Box size={14} />, accent: "#F59E0B", category: "Backend" },
-  { name: "Flutter", icon: <Orbit size={14} />, accent: "#0284C7", category: "Mobile" },
-  { name: "React Native", icon: <Atom size={14} />, accent: "#6366F1", category: "Mobile" },
-  { name: "PostgreSQL", icon: <Grid3X3 size={14} />, accent: "#336791", category: "Database/Tools" },
-  { name: "MySQL", icon: <Blocks size={14} />, accent: "#F97316", category: "Database/Tools" },
-  { name: "Prisma", icon: <Feather size={14} />, accent: "#10B981", category: "Database/Tools" },
-  { name: "Docker", icon: <CirclePlay size={14} />, accent: "#0284C7", category: "Database/Tools" },
+  { name: "Next.js", aliases: ["nextjs", "next"], icon: <SiNextdotjs size={14} />, accent: "#000000", category: "Frontend" },
+  { name: "React", aliases: ["reactjs"], icon: <SiReact size={14} />, accent: "#149ECA", category: "Frontend" },
+  { name: "TypeScript", aliases: ["ts", "typescript"], icon: <SiTypescript size={14} />, accent: "#3178C6", category: "Frontend" },
+  { name: "JavaScript", aliases: ["js", "javascript"], icon: <SiJavascript size={14} />, accent: "#F7DF1E", category: "Frontend" },
+  { name: "Tailwind CSS", aliases: ["tailwind", "tailwindcss"], icon: <SiTailwindcss size={14} />, accent: "#06B6D4", category: "Frontend" },
+  { name: "Framer Motion", aliases: ["framer", "framermotion"], icon: <SiFramer size={14} />, accent: "#0055FF", category: "Frontend" },
+  { name: "Vue.js", aliases: ["vue", "vuejs"], icon: <SiVuedotjs size={14} />, accent: "#4FC08D", category: "Frontend" },
+  { name: "Node.js", aliases: ["nodejs", "node"], icon: <SiNodedotjs size={14} />, accent: "#5FA04E", category: "Backend" },
+  { name: "Express", aliases: ["express.js", "expressjs", "express."], icon: <SiExpress size={14} />, accent: "#000000", category: "Backend" },
+  { name: "Laravel", aliases: ["laravel"], icon: <SiLaravel size={14} />, accent: "#FF2D20", category: "Backend" },
+  { name: "Golang", aliases: ["go", "golang"], icon: <SiGo size={14} />, accent: "#00ADD8", category: "Backend" },
+  { name: "Python", aliases: ["python", "py"], icon: <SiPython size={14} />, accent: "#3776AB", category: "Backend" },
+  { name: "FastAPI", aliases: ["fastapi"], icon: <SiFastapi size={14} />, accent: "#009688", category: "Backend" },
+  { name: "Flutter", aliases: ["flutter"], icon: <SiFlutter size={14} />, accent: "#02569B", category: "Mobile" },
+  { name: "React Native", aliases: ["reactnative"], icon: <SiReact size={14} />, accent: "#61DAFB", category: "Mobile" },
+  { name: "PostgreSQL", aliases: ["postgres", "postgresql"], icon: <SiPostgresql size={14} />, accent: "#4169E1", category: "Database/Tools" },
+  { name: "MySQL", aliases: ["mysql"], icon: <SiMysql size={14} />, accent: "#4479A1", category: "Database/Tools" },
+  { name: "MongoDB", aliases: ["mongo", "mongodb"], icon: <SiMongodb size={14} />, accent: "#47A248", category: "Database/Tools" },
+  { name: "Redis", aliases: ["redis"], icon: <SiRedis size={14} />, accent: "#DC382D", category: "Database/Tools" },
+  { name: "Prisma", aliases: ["prisma"], icon: <SiPrisma size={14} />, accent: "#2D3748", category: "Database/Tools" },
+  { name: "Docker", aliases: ["docker"], icon: <SiDocker size={14} />, accent: "#2496ED", category: "Database/Tools" },
+  { name: "Supabase", aliases: ["supabase"], icon: <SiSupabase size={14} />, accent: "#3ECF8E", category: "Database/Tools" },
+  { name: "Firebase", aliases: ["firebase"], icon: <SiFirebase size={14} />, accent: "#FFCA28", category: "Database/Tools" },
 ]
+
+export function findTechPreset(name: string): TechItem | undefined {
+  const clean = name.trim().toLowerCase().replace(/\.+$/, "")
+  return PRESET_TECHS.find(p => {
+    if (p.name.toLowerCase() === clean) return true
+    if (p.aliases?.some(a => a.toLowerCase() === clean)) return true
+    return false
+  })
+}
 
 interface TechStackSelectorProps {
   value: string
@@ -94,14 +117,14 @@ export function TechStackSelector({ value, onChange }: TechStackSelectorProps) {
       {selectedList.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 p-2 bg-zinc-50 border border-zinc-200/80 rounded-xl min-h-[38px]">
           {selectedList.map(item => {
-            const preset = PRESET_TECHS.find(p => p.name.toLowerCase() === item.toLowerCase())
+            const preset = findTechPreset(item)
             return (
               <span
                 key={item}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-white text-zinc-900 border border-zinc-200 shadow-2xs"
               >
                 {preset ? (
-                  <span style={{ color: preset.accent }} className="flex items-center">
+                  <span style={{ color: preset.accent }} className="flex items-center shrink-0">
                     {preset.icon}
                   </span>
                 ) : (
@@ -123,9 +146,9 @@ export function TechStackSelector({ value, onChange }: TechStackSelectorProps) {
       )}
 
       {/* Preset Chips Quick Picker */}
-      <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1">
+      <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-1">
         {PRESET_TECHS.map(tech => {
-          const isSelected = selectedList.some(s => s.toLowerCase() === tech.name.toLowerCase())
+          const isSelected = selectedList.some(s => s.toLowerCase() === tech.name.toLowerCase() || tech.aliases?.includes(s.toLowerCase()))
           return (
             <button
               type="button"

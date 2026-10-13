@@ -30,7 +30,7 @@ import {
   UserCheck
 } from 'lucide-react'
 import { StatusBadge } from '@/components/status-badge'
-import { PRESET_TECHS, TechStackSelector } from '@/components/tech-stack-selector'
+import { findTechPreset, TechStackSelector } from '@/components/tech-stack-selector'
 import { getSocket } from '@/lib/socket-client'
 import { ProjectChatWidget } from '@/components/project-chat-widget'
 
@@ -809,28 +809,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     {project.name}
                   </h1>
                   <StatusBadge value={project.status} />
-                  {project.techStack && (
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {project.techStack.split(',').map(s => s.trim()).filter(Boolean).map(techName => {
-                        const preset = PRESET_TECHS.find(p => p.name.toLowerCase() === techName.toLowerCase())
-                        return (
-                          <span
-                            key={techName}
-                            className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[#242426] text-zinc-100 border border-white/15 shadow-xs"
-                          >
-                            {preset ? (
-                              <span style={{ color: preset.accent }} className="flex items-center">
-                                {preset.icon}
-                              </span>
-                            ) : (
-                              <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
-                            )}
-                            <span>{techName}</span>
-                          </span>
-                        )
-                      })}
-                    </div>
-                  )}
                   {project.repository && (
                     <a
                       href={project.repository.startsWith('http') ? project.repository : `https://${project.repository}`}
@@ -843,8 +821,35 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     </a>
                   )}
                 </div>
+
+                {/* Tech Stack Badges with Authentic Vector Logos */}
+                {project.techStack && (
+                  <div className="flex items-center gap-2 flex-wrap mt-3.5 mb-3">
+                    {project.techStack.split(',').map(s => s.trim()).filter(Boolean).map(techName => {
+                      const preset = findTechPreset(techName)
+                      const displayName = preset ? preset.name : techName.replace(/\.+$/, '')
+                      return (
+                        <span
+                          key={techName}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-white text-zinc-950 border border-zinc-200 shadow-sm"
+                        >
+                          {preset ? (
+                            <span style={{ color: preset.accent }} className="flex items-center shrink-0">
+                              {preset.icon}
+                            </span>
+                          ) : (
+                            <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                          )}
+                          <span>{displayName}</span>
+                        </span>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Project Description with Generous Spacing */}
                 {project.description && (
-                  <p className="text-xs sm:text-sm mt-1.5 text-zinc-300/90 leading-relaxed break-words">
+                  <p className="text-xs sm:text-sm text-zinc-300/95 leading-relaxed break-words pt-1">
                     {renderDescriptionWithLinks(project.description)}
                   </p>
                 )}

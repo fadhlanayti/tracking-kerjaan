@@ -212,7 +212,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
               <Ticket size={18} />
             </div>
             <div>
-              <h1 className="text-lg font-bold" style={{ color: 'var(--text-primary)', margin: 0 }}>Tickets</h1>
+              <h1 className="text-lg font-bold text-white" style={{  margin: 0 }}>Tickets</h1>
               <p className="text-xs" style={{ color: 'var(--text-muted)', margin: 0 }}>Request & approval system</p>
             </div>
           </div>
