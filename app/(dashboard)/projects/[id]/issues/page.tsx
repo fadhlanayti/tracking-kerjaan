@@ -2,7 +2,7 @@
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { Plus, MessageSquare, User, Filter, AlertCircle, ArrowUpRight, Trash2, Check, Users } from 'lucide-react'
+import { Plus, MessageSquare, User, Filter, AlertCircle, ArrowUpRight, Trash2, Check, Users, Ticket } from 'lucide-react'
 import { StatusBadge, statusLabels } from '@/components/status-badge'
 
 interface Issue {
@@ -146,7 +146,7 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
       {/* Header bar dengan margin bawah yang lega */}
       <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
         <div>
-          <h1 className='!text-white' style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em',  margin: 0 }}>
+          <h1 className="!text-black" style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: '#000000' }}>
             Issues
           </h1>
           <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.5rem', marginBottom: 0 }}>
@@ -318,22 +318,30 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
           </select>
         </div>
 
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', padding: '0 0.5rem' }}>
-          Total: <strong style={{ color: 'var(--text-primary)' }}>{issues.length}</strong> issue
+        <div className="flex items-center gap-3">
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', padding: '0 0.5rem' }}>
+            Total: <strong style={{ color: 'var(--text-primary)' }}>{issues.length}</strong> issue
+          </div>
+
+          {!isPMorAdmin && (
+            <Link
+              href={`/projects/${id}/tickets`}
+              className="btn-primary text-xs"
+              style={{
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.45rem 0.85rem',
+                fontSize: '0.75rem',
+              }}
+            >
+              <Ticket size={13} />
+              <span>Buat Ticket</span>
+            </Link>
+          )}
         </div>
       </div>
-
-      {/* Non-PM/Admin info banner */}
-      {!isPMorAdmin && (
-        <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', backgroundColor: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.15)' }}>
-          <p className="text-sm" style={{ color: '#7C3AED', margin: 0 }}>
-            💡 Ingin melaporkan masalah? Buat <strong>Ticket</strong> terlebih dahulu untuk disetujui PM.
-          </p>
-          <Link href={`/projects/${id}/tickets`} className="btn-primary text-xs" style={{ flexShrink: 0, textDecoration: 'none' }}>
-            Buat Ticket
-          </Link>
-        </div>
-      )}
 
       {/* Issues list - Modern Cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
