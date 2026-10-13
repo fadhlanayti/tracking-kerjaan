@@ -5,6 +5,7 @@ import { UserPlus, Copy, Check, Link2 } from 'lucide-react'
 export default function InviteUserPage() {
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
+  const [position, setPosition] = useState('')
   const [phone, setPhone] = useState('')
   const [role, setRole] = useState('CLIENT')
   const [inviteUrl, setInviteUrl] = useState('')
@@ -18,10 +19,10 @@ export default function InviteUserPage() {
     const res = await fetch('/api/invite/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name, phone: phone || undefined, role }),
+      body: JSON.stringify({ email, name, position: position || undefined, phone: phone || undefined, role }),
     })
     const data = await res.json()
-    if (res.ok) { setInviteUrl(data.inviteUrl); setEmail(''); setName(''); setPhone('') }
+    if (res.ok) { setInviteUrl(data.inviteUrl); setEmail(''); setName(''); setPosition(''); setPhone('') }
     else setError(data.error || 'Failed to generate invite')
     setSubmitting(false)
   }
@@ -40,7 +41,7 @@ export default function InviteUserPage() {
           <UserPlus size={20} />
         </div>
         <div>
-          <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Invite User</h2>
+          <h2 className="text-lg font-bold !text-white">Invite User</h2>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Kirim undangan ke anggota tim baru</p>
         </div>
       </div>
@@ -59,6 +60,16 @@ export default function InviteUserPage() {
               <label className="label">Email</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="input" placeholder="john@email.com" />
             </div>
+          </div>
+
+          {/* Position */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label className="label">Posisi / Jabatan</label>
+            <input
+              type="text" value={position} onChange={e => setPosition(e.target.value)}
+              placeholder="e.g. Web Developer, UI/UX Designer"
+              className="input"
+            />
           </div>
 
           {/* Phone */}

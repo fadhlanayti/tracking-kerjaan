@@ -17,7 +17,7 @@ export async function PATCH(
   }
 
   const body = await req.json()
-  const allowed = ['name', 'phone', 'avatar'] as const
+  const allowed = ['name', 'phone', 'avatar', 'position', 'linkedin', 'github'] as const
   const data: Record<string, any> = {}
   for (const key of allowed) {
     if (body[key] !== undefined) data[key] = body[key]
@@ -32,7 +32,7 @@ export async function PATCH(
   const user = await prisma.user.update({
     where: { id },
     data,
-    select: { id: true, email: true, name: true, phone: true, role: true, avatar: true, isActive: true },
+    select: { id: true, email: true, name: true, phone: true, role: true, avatar: true, position: true, linkedin: true, github: true, isActive: true },
   })
 
   return NextResponse.json(user)

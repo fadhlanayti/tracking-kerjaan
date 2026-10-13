@@ -2,6 +2,8 @@
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
+import Link from 'next/link'
+import { X, Eye, EyeOff } from 'lucide-react'
 
 export default function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params)
@@ -9,6 +11,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
   const [error, setError] = useState('')
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const router = useRouter()
@@ -43,7 +46,6 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
     const data = await res.json()
 
     if (data.success) {
-      // Auto-login langsung dengan credentials
       const signInRes = await signIn('credentials', {
         email: invite?.email,
         password,
@@ -62,67 +64,164 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
     }
   }
 
-  if (loading) return <div className="loading-state min-h-screen">Loading...</div>
-  if (error) return <div className="min-h-screen flex items-center justify-center" style={{ color: 'var(--red)' }}>{error}</div>
-
   return (
     <div className="auth-page">
-      <div className="auth-card w-full">
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div
-            className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4"
-            style={{ backgroundColor: 'var(--accent)' }}
-          >
-            W
+      <div className="auth-modal-frame">
+        <Link href="/login" className="auth-close-btn" aria-label="Close">
+          <X size={16} />
+        </Link>
+
+        {/* Form Column */}
+        <div className="auth-col-form">
+          <div>
+            <div style={{
+              border: '1.5px solid #27272A',
+              borderRadius: '9999px',
+              padding: '0.35rem 0.95rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              background: 'rgba(255, 255, 255, 0.45)'
+            }}>
+              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#18181B' }}>
+                Weball
+              </span>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>Join WeballCreative</h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Set up your account</p>
+
+          <div style={{ maxWidth: '340px', width: '100%', margin: '0 auto' }}>
+            {loading ? (
+              <div style={{ textAlign: 'center', color: '#71717A', padding: '2rem 0' }}>
+                Memvalidasi undangan...
+              </div>
+            ) : error && !invite ? (
+              <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                <p style={{ color: '#DC2626', fontWeight: 500 }}>{error}</p>
+                <Link href="/login" style={{ color: '#18181B', textDecoration: 'underline', fontSize: '0.8125rem', marginTop: '1rem', display: 'inline-block' }}>
+                  Kembali ke Login
+                </Link>
+              </div>
+            ) : (
+              <>
+                <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+                  <h1 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#18181B', margin: 0, lineHeight: 1.2 }}>
+                    Bergabung ke Tim
+                  </h1>
+                  <p style={{ fontSize: '0.8125rem', color: '#71717A', marginTop: '0.35rem', marginBottom: 0 }}>
+                    Atur nama dan password untuk mulai kerja
+                  </p>
+                </div>
+
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#71717A', marginBottom: '0.25rem', paddingLeft: '0.75rem' }}>
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={invite?.email || ''}
+                      disabled
+                      className="auth-pill-input"
+                      style={{ opacity: 0.7, cursor: 'not-allowed' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#71717A', marginBottom: '0.25rem', paddingLeft: '0.75rem' }}>
+                      Nama Lengkap
+                    </label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      required
+                      className="auth-pill-input"
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#71717A', marginBottom: '0.25rem', paddingLeft: '0.75rem' }}>
+                      Password Baru
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        required
+                        minLength={6}
+                        placeholder="Minimal 6 karakter"
+                        className="auth-pill-input"
+                        style={{ paddingRight: '2.5rem' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={{
+                          position: 'absolute',
+                          right: '0.85rem',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          color: '#9CA3AF',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: 0
+                        }}
+                      >
+                        {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div style={{
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                      color: '#DC2626',
+                      fontSize: '0.75rem',
+                      padding: '0.5rem 0.85rem',
+                      borderRadius: '9999px',
+                      textAlign: 'center'
+                    }}>
+                      {error}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="auth-pill-btn"
+                    style={{ marginTop: '0.25rem' }}
+                  >
+                    {submitting ? 'Menyiapkan akun...' : 'Set Password & Bergabung'}
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '0.6875rem',
+            color: '#71717A'
+          }}>
+            <span>WeballCreative © 2026</span>
+            <span style={{ color: '#52525B' }}>Project Tracker</span>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div>
-            <label className="label">Email</label>
-            <input
-              type="email"
-              value={invite?.email || ''}
-              disabled
-              className="input"
-              style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
-            />
-          </div>
-          <div>
-            <label className="label">Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              required
-              className="input"
-            />
-          </div>
-          <div>
-            <label className="label">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="input"
-              placeholder="Min 6 characters"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="btn-primary w-full justify-center py-2.5"
-            style={{ marginTop: '1rem' }}
-          >
-            {submitting ? 'Setting up...' : 'Set Password & Join'}
-          </button>
-        </form>
+        {/* Visual Column */}
+        <div className="auth-col-visual">
+          <img
+            src="/assets/auth/card-photo.png"
+            alt="Team Collaboration"
+            className="auth-visual-img"
+          />
+        </div>
       </div>
     </div>
   )

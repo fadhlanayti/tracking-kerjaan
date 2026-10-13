@@ -106,6 +106,27 @@ export function formatTicketStatus(data: {
   return `[WeballCreative] Update ticket kamu:\nProyek: ${data.projectName}\nTicket: "${data.ticketTitle}"\nStatus: ${label}${notes}\nBuka: ${data.appUrl}/projects/${data.projectId}/tickets`
 }
 
+export function formatProjectUpdate(data: {
+  projectName: string
+  title: string
+  authorName: string
+  status: string
+  projectId: string
+  appUrl: string
+}): string {
+  const statusLabels: Record<string, string> = {
+    DO: '📝 Backlog (DO)',
+    DOING: '⚡ Sedang Dikerjakan (DOING)',
+    DONE: '✅ Selesai (DONE)',
+  }
+  const label = statusLabels[data.status] || data.status
+  return `[WeballCreative] Progress baru pada proyek ${data.projectName}:
+Fitur/Update: "${data.title}"
+Oleh: ${data.authorName}
+Status: ${label}
+Buka detail proyek: ${data.appUrl}/projects/${data.projectId}`
+}
+
 export function formatInvite(inviteUrl: string): string {
   return `[WeballCreative] Kamu diundang ke platform project management kami.
 Klik link berikut untuk bergabung:

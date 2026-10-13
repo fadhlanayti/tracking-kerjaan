@@ -57,6 +57,9 @@ model User {
   password      String
   role          UserRole  @default(CLIENT)
   avatar        String?
+  position      String?
+  linkedin      String?
+  github        String?
   inviteToken   String?   @unique
   inviteExpiry  DateTime?
   isActive      Boolean   @default(true)
@@ -67,6 +70,7 @@ model User {
   memberships      ProjectMember[]
   createdIssues    Issue[]          @relation("IssueCreator")
   assignedIssues   Issue[]          @relation("IssueAssignee")
+  issueAssignees   IssueAssignee[]
   projectUpdates   ProjectUpdate[]  @relation("UpdateAuthor")
   assignedUpdates  ProjectUpdate[]  @relation("UpdateAssignee")
   updateTimelineLogs ProjectUpdateLog[]
@@ -81,6 +85,8 @@ model Project {
   id          String        @id @default(cuid())
   name        String
   description String?
+  repository  String?
+  techStack   String?
   status      ProjectStatus @default(ACTIVE)
   createdById String
   createdBy   User          @relation("ProjectCreator", fields: [createdById], references: [id])
@@ -123,10 +129,23 @@ model Issue {
   project    Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdBy  User            @relation("IssueCreator", fields: [createdById], references: [id])
   assignedTo User?           @relation("IssueAssignee", fields: [assignedToId], references: [id])
+  assignees  IssueAssignee[]
   projectUpdateId String?
   projectUpdate   ProjectUpdate? @relation(fields: [projectUpdateId], references: [id], onDelete: SetNull)
   comments   IssueComment[]
   activities IssueActivity[]
+}
+
+model IssueAssignee {
+  id        String   @id @default(cuid())
+  issueId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([issueId, userId])
 }
 
 model IssueComment {

@@ -1,5 +1,6 @@
 import { prisma } from './prisma'
 import { sendWhatsApp, normalizePhone } from './whatsapp'
+import { emitSocket } from './socket'
 
 export async function createNotification(data: {
   userId: string
@@ -20,6 +21,9 @@ export async function createNotification(data: {
       referenceType: data.referenceType,
     },
   })
+
+  // Realtime Socket push ke room user
+  emitSocket(`user:${data.userId}`, 'notification:new', notification)
 
   // Send WA notification if user has phone
   if (data.waMessage) {

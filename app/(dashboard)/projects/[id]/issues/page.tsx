@@ -2,7 +2,7 @@
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { Plus, MessageSquare, User, Filter, AlertCircle, ArrowUpRight, Trash2 } from 'lucide-react'
+import { Plus, MessageSquare, User, Filter, AlertCircle, ArrowUpRight, Trash2, Check, Users } from 'lucide-react'
 import { StatusBadge, statusLabels } from '@/components/status-badge'
 
 interface Issue {
@@ -12,6 +12,7 @@ interface Issue {
   priority: string
   createdBy: { id: string; name: string }
   assignedTo: { id: string; name: string } | null
+  assignees?: { user: { id: string; name: string } }[]
   _count: { comments: number }
   createdAt: string
 }
@@ -32,7 +33,8 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
   const [newPriority, setNewPriority] = useState('MEDIUM')
   const [creating, setCreating] = useState(false)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
-  const [members, setMembers] = useState<{ user: { id: string }; role: string }[]>([])
+  const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<string[]>([])
+  const [members, setMembers] = useState<{ user: { id: string; name: string }; role: string }[]>([])
 
   useEffect(() => {
     fetch(`/api/projects/${id}`)
@@ -68,19 +70,29 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
       priority: currentPriority,
       createdBy: { id: (session?.user as any)?.id || '', name: session?.user?.name || 'Saya' },
       assignedTo: null,
+      assignees: selectedAssigneeIds.map(uid => ({
+        user: { id: uid, name: members.find(m => m.user.id === uid)?.user.name || 'Developer' }
+      })),
       _count: { comments: 0 },
       createdAt: new Date().toISOString(),
     }
     setIssues(prev => [optimistic, ...prev])
     setNewTitle('')
     setNewDesc('')
+    const assigneeIdsToSend = [...selectedAssigneeIds]
+    setSelectedAssigneeIds([])
     setShowCreateForm(false)
 
     try {
       const res = await fetch(`/api/projects/${id}/issues`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: currentTitle, description: currentDesc, priority: currentPriority }),
+        body: JSON.stringify({
+          title: currentTitle,
+          description: currentDesc,
+          priority: currentPriority,
+          assigneeIds: assigneeIdsToSend,
+        }),
       })
       if (res.ok) {
         const saved = await res.json()
@@ -105,7 +117,7 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[40vh] text-sm text-[var(--text-muted)]">
+      <div className="flex items-center justify-center min-h-[40vh] text-sm text-white">
         Memuat daftar issue...
       </div>
     )
@@ -134,7 +146,7 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
       {/* Header bar dengan margin bawah yang lega */}
       <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: 0 }}>
+          <h1 className='!text-white' style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em',  margin: 0 }}>
             Issues
           </h1>
           <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.5rem', marginBottom: 0 }}>
@@ -184,6 +196,61 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
             className="input resize-none"
             style={{ fontSize: '0.8125rem', padding: '0.75rem' }}
           />
+
+          {/* Multi-Select Developer Assignees */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+            <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <Users size={13} />
+              <span>Assign Developer (Pilih satu atau lebih):</span>
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+              {members
+                .filter(m => m.role === 'DEVELOPER' || m.role === 'ADMIN' || m.role === 'PM')
+                .map(m => {
+                  const isChecked = selectedAssigneeIds.includes(m.user.id)
+                  return (
+                    <button
+                      key={m.user.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedAssigneeIds(prev =>
+                          isChecked ? prev.filter(uid => uid !== m.user.id) : [...prev, m.user.id]
+                        )
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.375rem',
+                        padding: '0.3rem 0.65rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        border: isChecked ? '1px solid #0071E3' : '1px solid var(--border)',
+                        backgroundColor: isChecked ? 'rgba(0, 113, 227, 0.12)' : 'var(--bg-elevated)',
+                        color: isChecked ? '#0071E3' : 'var(--text-secondary)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: isChecked ? '#0071E3' : 'rgba(0,0,0,0.1)',
+                          color: '#fff',
+                        }}
+                      >
+                        {isChecked && <Check size={8} />}
+                      </div>
+                      <span>{m.user.name}</span>
+                    </button>
+                  )
+                })}
+            </div>
+          </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', paddingTop: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -298,10 +365,17 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
                       <User size={12} />
                       {issue.createdBy.name}
                     </span>
-                    {issue.assignedTo && (
+                    {((issue.assignees && issue.assignees.length > 0) || issue.assignedTo) && (
                       <>
                         <span>•</span>
-                        <span>Ditugaskan ke: <strong style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{issue.assignedTo.name}</strong></span>
+                        <span>
+                          Ditugaskan ke:{' '}
+                          <strong style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
+                            {issue.assignees && issue.assignees.length > 0
+                              ? issue.assignees.map(a => a.user.name).join(', ')
+                              : issue.assignedTo?.name}
+                          </strong>
+                        </span>
                       </>
                     )}
                     <span>•</span>

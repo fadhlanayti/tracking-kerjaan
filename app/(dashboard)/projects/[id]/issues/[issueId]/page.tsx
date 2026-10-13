@@ -2,7 +2,7 @@
 import { useState, useEffect, use } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { ChevronRight, Paperclip, Send, Clock, MessageSquare } from 'lucide-react'
+import { ChevronRight, Paperclip, Send, Clock, MessageSquare, Check, Users } from 'lucide-react'
 import { StatusBadge, statusLabels } from '@/components/status-badge'
 import { FileUpload } from '@/components/file-upload'
 
@@ -23,6 +23,7 @@ interface Issue {
   attachments: string[]
   createdBy: { id: string; name: string; avatar: string | null }
   assignedTo: { id: string; name: string; avatar: string | null } | null
+  assignees?: { user: { id: string; name: string; avatar: string | null } }[]
   comments: Comment[]
   project: { id: string; name: string }
   createdAt: string
@@ -79,7 +80,7 @@ export default function IssueDetailPage({ params }: { params: Promise<{ id: stri
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh] text-sm text-[var(--text-muted)]">
+      <div className="flex items-center justify-center min-h-[50vh] text-sm text-white">
         Loading issue...
       </div>
     )
@@ -108,14 +109,14 @@ export default function IssueDetailPage({ params }: { params: Promise<{ id: stri
       <nav style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1.25rem', marginTop: '0.25rem' }}>
         <Link
           href={`/projects/${id}`}
-          style={{ color: 'var(--accent)', fontWeight: 500, textDecoration: 'none' }}
+          style={{ color: 'var(--accent)', fontWeight: 700, textDecoration: 'none' }}
         >
           {issue.project.name}
         </Link>
         <ChevronRight size={13} style={{ opacity: 0.5 }} />
         <Link
           href={`/projects/${id}/issues`}
-          style={{ color: 'var(--accent)', fontWeight: 500, textDecoration: 'none' }}
+          style={{ color: 'var(--accent)', fontWeight: 700, textDecoration: 'none' }}
         >
           Issues
         </Link>
@@ -140,10 +141,17 @@ export default function IssueDetailPage({ params }: { params: Promise<{ id: stri
                 <Clock size={12} />
                 {new Date(issue.createdAt).toLocaleDateString()}
               </span>
-              {issue.assignedTo && (
+              {((issue.assignees && issue.assignees.length > 0) || issue.assignedTo) && (
                 <>
                   <span>•</span>
-                  <span>Assigned to <strong style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{issue.assignedTo.name}</strong></span>
+                  <span>
+                    Assigned to{' '}
+                    <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                      {issue.assignees && issue.assignees.length > 0
+                        ? issue.assignees.map(a => a.user.name).join(', ')
+                        : issue.assignedTo?.name}
+                    </strong>
+                  </span>
                 </>
               )}
             </div>
@@ -209,19 +217,61 @@ export default function IssueDetailPage({ params }: { params: Promise<{ id: stri
             </div>
 
             {isAdmin && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <label style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Assign to:</label>
-                <select
-                  value={issue.assignedTo?.id || ''}
-                  onChange={e => updateIssue({ assignedToId: e.target.value || null })}
-                  className="input"
-                  style={{ width: 'auto', padding: '0.375rem 0.75rem', fontSize: '0.75rem', fontWeight: 600, height: 'auto', lineHeight: 'normal' }}
-                >
-                  <option value="">Unassigned</option>
-                  {developers.map(m => (
-                    <option key={m.user.id} value={m.user.id}>{m.user.name}</option>
-                  ))}
-                </select>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%', marginTop: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  <Users size={14} />
+                  <span>Assign Developer (Pilih satu atau lebih):</span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {developers.map(m => {
+                    const currentAssigneeIds = issue.assignees?.map(a => a.user.id) || (issue.assignedTo ? [issue.assignedTo.id] : [])
+                    const isSelected = currentAssigneeIds.includes(m.user.id)
+
+                    return (
+                      <button
+                        key={m.user.id}
+                        type="button"
+                        onClick={() => {
+                          const nextIds = isSelected
+                            ? currentAssigneeIds.filter(id => id !== m.user.id)
+                            : [...currentAssigneeIds, m.user.id]
+                          updateIssue({ assigneeIds: nextIds })
+                        }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.375rem',
+                          padding: '0.375rem 0.75rem',
+                          borderRadius: '9999px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          border: isSelected ? '1px solid #0071E3' : '1px solid var(--border)',
+                          backgroundColor: isSelected ? 'rgba(0, 113, 227, 0.12)' : 'var(--bg-elevated)',
+                          color: isSelected ? '#0071E3' : 'var(--text-secondary)',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 14,
+                            height: 14,
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: isSelected ? '#0071E3' : 'rgba(0,0,0,0.1)',
+                            color: '#fff',
+                            fontSize: 9,
+                          }}
+                        >
+                          {isSelected && <Check size={10} />}
+                        </div>
+                        <span>{m.user.name}</span>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             )}
           </div>

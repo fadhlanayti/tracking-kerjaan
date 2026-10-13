@@ -25,7 +25,9 @@ import {
   Trash2,
   Edit2,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  ExternalLink,
+  UserCheck
 } from 'lucide-react'
 import { StatusBadge } from '@/components/status-badge'
 import { getSocket } from '@/lib/socket-client'
@@ -73,6 +75,8 @@ interface Project {
   id: string
   name: string
   description: string | null
+  repository: string | null
+  techStack: string | null
   status: string
   _count: { issues: number }
   members: Member[]
@@ -97,6 +101,30 @@ const roleTxt: Record<string, { avatar: string; badge: string }> = {
   PM:        { avatar: '#fff', badge: '#202524' },
   DEVELOPER: { avatar: '#fff', badge: '#087CF0' },
   CLIENT:    { avatar: '#0E7490', badge: '#0E7490' },
+}
+
+function renderDescriptionWithLinks(text: string) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g
+  const parts = text.split(urlRegex)
+
+  return parts.map((part, i) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-[#38BDF8] hover:text-[#7DD3FC] underline underline-offset-2 break-all transition-colors"
+          onClick={e => e.stopPropagation()}
+        >
+          <span>{part}</span>
+          <ExternalLink size={11} className="shrink-0" />
+        </a>
+      )
+    }
+    return part
+  })
 }
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -129,6 +157,59 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [selectedRole, setSelectedRole] = useState<'DEVELOPER' | 'CLIENT' | 'PM'>('DEVELOPER')
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState('')
+
+  // Edit Project state
+  const [showEditProjectModal, setShowEditProjectModal] = useState(false)
+  const [editProjectName, setEditProjectName] = useState('')
+  const [editProjectDescription, setEditProjectDescription] = useState('')
+  const [editProjectRepository, setEditProjectRepository] = useState('')
+  const [editProjectTechStack, setEditProjectTechStack] = useState('')
+  const [editProjectStatus, setEditProjectStatus] = useState('ACTIVE')
+  const [submittingEditProject, setSubmittingEditProject] = useState(false)
+
+  function openEditProjectModal() {
+    if (!project) return
+    setEditProjectName(project.name)
+    setEditProjectDescription(project.description || '')
+    setEditProjectRepository(project.repository || '')
+    setEditProjectTechStack(project.techStack || '')
+    setEditProjectStatus(project.status)
+    setShowEditProjectModal(true)
+  }
+
+  async function handleSaveProject(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editProjectName.trim() || submittingEditProject) return
+
+    setSubmittingEditProject(true)
+    try {
+      const res = await fetch(`/api/projects/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editProjectName.trim(),
+          description: editProjectDescription.trim(),
+          repository: editProjectRepository.trim() || null,
+          techStack: editProjectTechStack.trim() || null,
+          status: editProjectStatus,
+        }),
+      })
+
+      if (res.ok) {
+        const updated = await res.json()
+        setProject(prev => prev ? { ...prev, ...updated } : updated)
+        setShowEditProjectModal(false)
+      } else {
+        const data = await res.json().catch(() => ({}))
+        alert(data.error || 'Gagal menyimpan perubahan project')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Terjadi kesalahan saat menyimpan project')
+    } finally {
+      setSubmittingEditProject(false)
+    }
+  }
 
   // Create / Edit Update state (For Developers)
   const [showUpdateModal, setShowUpdateModal] = useState(false)
@@ -293,9 +374,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       }
     }
 
+    function handleProjectUpdated(updatedProj: Project) {
+      setProject(prev => prev ? { ...prev, ...updatedProj } : updatedProj)
+    }
+
     socket.on('project:update:new', handleNewUpdate)
     socket.on('project:update:status', handleStatusUpdate)
     socket.on('project:update:delete', handleDeleteUpdate)
+    socket.on('project:updated', handleProjectUpdated)
     socket.on('issue:new', handleNewIssue)
     socket.on('project:update:log', handleUpdateLog)
     socket.on('message:new', handleChatMessage)
@@ -304,6 +390,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       socket.off('project:update:new', handleNewUpdate)
       socket.off('project:update:status', handleStatusUpdate)
       socket.off('project:update:delete', handleDeleteUpdate)
+      socket.off('project:updated', handleProjectUpdated)
       socket.off('issue:new', handleNewIssue)
       socket.off('project:update:log', handleUpdateLog)
       socket.off('message:new', handleChatMessage)
@@ -311,7 +398,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   }, [id, session])
 
   const isAdmin = session?.user?.role === 'ADMIN'
-  const isDev = session?.user?.role === 'DEVELOPER' || isAdmin || project?.members.some(m => m.user.id === session?.user?.id && (m.role === 'DEVELOPER' || m.role === 'PM'))
+  const isPM = project?.members.some(m => m.user.id === session?.user?.id && m.role === 'PM')
+  const isPMorAdmin = isAdmin || isPM
+  const isDev = session?.user?.role === 'DEVELOPER' || isAdmin || isPM || project?.members.some(m => m.user.id === session?.user?.id && m.role === 'DEVELOPER')
 
   useEffect(() => {
     if (!isAdmin) return
@@ -677,7 +766,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     }
   }
 
-  if (loading) return <div className="loading-state">Loading...</div>
+  if (loading) return <div className="loading-state !text-white">Loading...</div>
   if (!project) return <div style={{ color: 'var(--red)' }}>Project not found</div>
 
   const memberIds = new Set(project.members.map(m => m.user.id))
@@ -701,43 +790,92 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   return (
     <div className="flex flex-col gap-5 sm:gap-6 w-full px-1 sm:px-0 pb-24 sm:pb-28">
 
-      {/* Project Header Banner (Apple Style Frosted/Deep Card) */}
-      <div className="rounded-2xl p-5 sm:p-6 bg-[#1D1D1F] text-white shadow-lg border border-black/10">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5 sm:gap-4 w-full sm:w-auto">
-            <div className="flex items-center justify-center text-white text-xl sm:text-2xl font-bold shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-[#0071E3] shadow-md shadow-blue-500/20">
-              {project.name[0].toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white truncate">{project.name}</h1>
-                <StatusBadge value={project.status} />
+      {/* Project Header Banner (Apple-Inspired Premium Card) */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#242426] to-[#1A1A1C] text-white shadow-xl border border-white/10 p-5 sm:p-7">
+        {/* Subtle background glow */}
+        <div className="absolute -top-24 -right-24 w-72 h-72 bg-[#0071E3]/15 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative flex flex-col gap-5">
+          {/* Top row: Avatar + Title + Status + Action button */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4 min-w-0 flex-1">
+              <div className="flex items-center justify-center text-white text-2xl font-bold shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-[#0071E3] to-[#0051A8] shadow-lg shadow-blue-500/25 border border-white/20">
+                {project.name[0].toUpperCase()}
               </div>
-              {project.description && (
-                <p className="text-xs sm:text-sm mt-1 text-zinc-400 line-clamp-2">{project.description}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white truncate">
+                    {project.name}
+                  </h1>
+                  <StatusBadge value={project.status} />
+                  {project.techStack && (
+                    <span className="text-[11px] font-mono font-medium px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                      {project.techStack}
+                    </span>
+                  )}
+                  {project.repository && (
+                    <a
+                      href={project.repository.startsWith('http') ? project.repository : `https://${project.repository}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-sky-400/20 text-sky-300 hover:bg-sky-400/30 border border-sky-400/30 transition-colors"
+                    >
+                      <span>Repository</span>
+                      <ExternalLink size={10} />
+                    </a>
+                  )}
+                </div>
+                {project.description && (
+                  <p className="text-xs sm:text-sm mt-1.5 text-zinc-300/90 leading-relaxed break-words">
+                    {renderDescriptionWithLinks(project.description)}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+              {isPMorAdmin && (
+                <button
+                  onClick={openEditProjectModal}
+                  className="inline-flex items-center gap-1.5 font-medium bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/30 px-3 py-1.5 rounded-full transition-all cursor-pointer text-xs"
+                  title="Edit project"
+                >
+                  <Edit2 size={13} />
+                  <span>Edit Project</span>
+                </button>
+              )}
+              {isAdmin && (
+                <button
+                  onClick={handleDeleteProject}
+                  className="inline-flex items-center gap-1.5 font-medium bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-300 border border-white/10 hover:border-red-500/30 px-3 py-1.5 rounded-full transition-all cursor-pointer text-xs"
+                  title="Hapus project"
+                >
+                  <Trash2 size={13} />
+                  <span>Hapus</span>
+                </button>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto pt-3 sm:pt-0 border-t border-white/10 sm:border-none justify-between sm:justify-end text-xs text-zinc-300">
-            <span className="flex items-center gap-1.5 font-medium bg-white/10 px-2.5 py-1 rounded-full">
-              <AlertCircle size={13} className="text-orange-400" /> {project._count.issues} Issues
-            </span>
-            <span className="flex items-center gap-1.5 font-medium bg-white/10 px-2.5 py-1 rounded-full">
-              <Layers size={13} className="text-blue-400" /> {updates.length} Updates
-            </span>
-            <span className="flex items-center gap-1.5 font-medium bg-white/10 px-2.5 py-1 rounded-full">
-              <Users size={13} className="text-emerald-400" /> {project.members.length} Members
-            </span>
-            {isAdmin && (
-              <button
-                onClick={handleDeleteProject}
-                className="flex items-center gap-1.5 font-medium bg-red-500/20 hover:bg-red-500/40 text-red-300 hover:text-red-200 px-2.5 py-1 rounded-full transition-colors border-none cursor-pointer text-xs"
-                title="Hapus project"
-              >
-                <Trash2 size={12} /> Hapus
-              </button>
-            )}
+          {/* Bottom stats row */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap pt-4 border-t border-white/10 text-xs text-white">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-sm text-white">
+              <AlertCircle size={14} className="text-orange-400 shrink-0" />
+              <span className="text-white/90">Issues:</span>
+              <span className="font-semibold text-white">{project._count.issues}</span>
+            </div>
+
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-sm text-white">
+              <Layers size={14} className="text-blue-400 shrink-0" />
+              <span className="text-white/90">Updates:</span>
+              <span className="font-semibold text-white">{updates.length}</span>
+            </div>
+
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-sm text-white">
+              <Users size={14} className="text-emerald-400 shrink-0" />
+              <span className="text-white/90">Members:</span>
+              <span className="font-semibold text-white">{project.members.length}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -746,34 +884,38 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <Link
           href={`/projects/${id}/issues`}
-          className="card p-4 sm:p-5 flex items-center justify-between no-underline group hover:border-[#0071E3]/30 transition-all active:scale-[0.99]"
+          className="card p-4 sm:p-5 flex items-center justify-between no-underline group hover:border-[#0071E3]/40 hover:shadow-md transition-all active:scale-[0.99]"
         >
           <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-orange-50 text-orange-600 border border-orange-100">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-orange-500/10 text-orange-600 border border-orange-500/20 group-hover:bg-orange-500/15 transition-colors">
               <AlertCircle size={22} />
             </div>
             <div>
               <p className="text-sm font-semibold text-zinc-900 group-hover:text-[#0071E3] transition-colors">Issue Tracker</p>
-              <p className="text-xs text-zinc-500 mt-0.5">{project._count.issues} Total issues</p>
+              <p className="text-xs text-zinc-500 mt-0.5">{project._count.issues} Total issues terdaftar</p>
             </div>
           </div>
-          <ArrowRight size={18} className="text-zinc-400 group-hover:text-zinc-600 group-hover:translate-x-0.5 transition-all" />
+          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-zinc-100 group-hover:bg-[#0071E3] group-hover:text-white text-zinc-500 transition-all">
+            <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
+          </div>
         </Link>
 
         <Link
           href={`/projects/${id}/tickets`}
-          className="card p-4 sm:p-5 flex items-center justify-between no-underline group hover:border-purple-400/30 transition-all active:scale-[0.99]"
+          className="card p-4 sm:p-5 flex items-center justify-between no-underline group hover:border-purple-500/40 hover:shadow-md transition-all active:scale-[0.99]"
         >
           <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-purple-50 text-purple-600 border border-purple-100">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-purple-500/10 text-purple-600 border border-purple-500/20 group-hover:bg-purple-500/15 transition-colors">
               <Ticket size={22} />
             </div>
             <div>
               <p className="text-sm font-semibold text-zinc-900 group-hover:text-purple-600 transition-colors">Tickets</p>
-              <p className="text-xs text-zinc-500 mt-0.5">Request & approval</p>
+              <p className="text-xs text-zinc-500 mt-0.5">Permintaan & persetujuan klien</p>
             </div>
           </div>
-          <ArrowRight size={18} className="text-zinc-400 group-hover:text-zinc-600 group-hover:translate-x-0.5 transition-all" />
+          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-zinc-100 group-hover:bg-purple-600 group-hover:text-white text-zinc-500 transition-all">
+            <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
+          </div>
         </Link>
       </div>
 
@@ -784,7 +926,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         <div className="flex flex-col gap-4 min-w-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles size={18} className="text-[#0071E3]" />
+              <Sparkles size={18} className="text-[#00060c]" />
               <h2 className="text-base font-bold text-zinc-900">Feature Updates & Progress</h2>
             </div>
             {isDev && (
@@ -829,39 +971,50 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   {/* Update Header (Clickable Accordion) */}
                   <div
                     onClick={() => toggleUpdateExpand(up.id)}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 cursor-pointer select-none"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer select-none"
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="text-zinc-400 hover:text-zinc-700 transition-colors shrink-0">
+                    <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+                      <div className="text-zinc-400 hover:text-zinc-700 transition-colors shrink-0 mt-0.5 sm:mt-0">
                         {expandedUpdateIds[up.id] ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                       </div>
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0 bg-[#0071E3]">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs text-white shrink-0 bg-gradient-to-br from-[#0071E3] to-[#0051A8] shadow-xs">
                         {up.author.name[0].toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-xs sm:text-sm font-bold text-zinc-900 break-words">{up.title}</span>
-                          <span className="text-[10px] text-zinc-500 font-medium">by {up.author.name}</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-bold text-zinc-900 break-words leading-tight">{up.title}</span>
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-700 bg-zinc-100/90 border border-zinc-200/80 px-2 py-0.5 rounded-full">
+                            <span>oleh</span>
+                            <span className="text-zinc-900">{up.author.name}</span>
+                          </span>
                           {up.status && (
-                            <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
                               up.status === 'DONE'
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/90 shadow-2xs'
                                 : up.status === 'DOING'
-                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                : 'bg-orange-50 text-orange-700 border border-orange-200'
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200/90 shadow-2xs'
+                                : 'bg-orange-50 text-orange-700 border border-orange-200/90 shadow-2xs'
                             }`}>
                               {up.status}
                             </span>
                           )}
                         </div>
-                        <span className="text-[11px] text-zinc-400 flex items-center flex-wrap gap-1 mt-0.5">
-                          <span className="flex items-center gap-1">
-                            <Clock size={11} /> {new Date(up.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+
+                        {/* Metadata row with readable contrast & chips */}
+                        <div className="flex items-center flex-wrap gap-2 sm:gap-3 mt-1.5 text-xs text-zinc-600 font-medium">
+                          <span className="inline-flex items-center gap-1.5 bg-zinc-50 border border-zinc-200/70 px-2 py-0.5 rounded-md text-zinc-700">
+                            <Clock size={12} className="text-zinc-500 shrink-0" />
+                            <span>{new Date(up.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                           </span>
+
                           {up.assignedTo && (
-                            <span className="text-zinc-500">· Assigned: {up.assignedTo.name}</span>
+                            <span className="inline-flex items-center gap-1.5 bg-blue-50/70 border border-blue-200/60 px-2 py-0.5 rounded-md text-blue-900">
+                              <UserCheck size={12} className="text-[#0071E3] shrink-0" />
+                              <span className="text-blue-700">Ditugaskan ke:</span>
+                              <strong className="text-blue-900 font-semibold">{up.assignedTo.name}</strong>
+                            </span>
                           )}
-                        </span>
+                        </div>
                       </div>
                     </div>
 
@@ -1660,6 +1813,116 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         isOpen={isChatOpen}
         onClose={() => setIsChatOpen(false)}
       />
+
+      {/* Modal: Edit Project */}
+      {showEditProjectModal && (
+        <div className="apple-modal-overlay">
+          <div className="apple-modal-sheet relative" style={{ padding: '0 1.75rem 1.5rem', maxWidth: 520 }}>
+            <div className="sheet-handle" />
+            <button
+              onClick={() => setShowEditProjectModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600 border-none bg-transparent cursor-pointer transition-colors"
+              style={{ zIndex: 1 }}
+            >
+              <X size={18} />
+            </button>
+
+            <div className="flex items-center gap-3 pb-5 mb-5 border-b border-zinc-100" style={{ paddingTop: '1rem' }}>
+              <div className="w-10 h-10 rounded-2xl bg-[#0071E3]/10 text-[#0071E3] flex items-center justify-center shrink-0">
+                <Edit2 size={18} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-zinc-900 leading-tight">Edit Detail Project</h3>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Ubah nama, deskripsi, atau status kelangsungan project
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveProject} className="flex flex-col gap-4 overflow-y-auto max-h-[70vh] pr-1">
+              <div>
+                <label className="label text-xs font-semibold mb-1.5 block">Nama Project</label>
+                <input
+                  type="text"
+                  value={editProjectName}
+                  onChange={e => setEditProjectName(e.target.value)}
+                  placeholder="Nama project..."
+                  required
+                  className="input text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="label text-xs font-semibold mb-1.5 block">Status Project</label>
+                <select
+                  value={editProjectStatus}
+                  onChange={e => setEditProjectStatus(e.target.value)}
+                  className="input text-sm font-medium"
+                >
+                  <option value="ACTIVE">Aktif (ACTIVE)</option>
+                  <option value="ON_HOLD">Tertunda (ON_HOLD)</option>
+                  <option value="COMPLETED">Selesai (COMPLETED)</option>
+                  <option value="ARCHIVED">Diarsipkan (ARCHIVED)</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="label text-xs font-semibold mb-1.5 block">Repository URL</label>
+                  <input
+                    type="url"
+                    value={editProjectRepository}
+                    onChange={e => setEditProjectRepository(e.target.value)}
+                    placeholder="https://github.com/..."
+                    className="input text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="label text-xs font-semibold mb-1.5 block">Tech Stack</label>
+                  <input
+                    type="text"
+                    value={editProjectTechStack}
+                    onChange={e => setEditProjectTechStack(e.target.value)}
+                    placeholder="Next.js, Tailwind, MySQL..."
+                    className="input text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="label text-xs font-semibold block">Deskripsi Project</label>
+                  <span className="text-[11px] text-zinc-400">Link URL otomatis aktif</span>
+                </div>
+                <textarea
+                  rows={4}
+                  value={editProjectDescription}
+                  onChange={e => setEditProjectDescription(e.target.value)}
+                  placeholder="Deskripsi singkat atau link dokumen / Figma / repository (opsional)..."
+                  className="input text-sm resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 mt-2 pt-3 border-t border-zinc-100">
+                <button
+                  type="button"
+                  onClick={() => setShowEditProjectModal(false)}
+                  className="btn-secondary text-xs"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingEditProject || !editProjectName.trim()}
+                  className="btn-primary text-xs"
+                >
+                  {submittingEditProject ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   )

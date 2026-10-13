@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { emitSocket } from '@/lib/socket'
+import { createNotification } from '@/lib/notifications'
+import { formatIssueAssigned } from '@/lib/whatsapp'
 
 export async function GET(
   req: NextRequest,
@@ -20,11 +22,20 @@ export async function GET(
   const where: any = { projectId: id }
   if (status) where.status = status
   if (priority) where.priority = priority
-  if (assignedToId) where.assignedToId = assignedToId
+
+  if (assignedToId) {
+    where.OR = [
+      { assignedToId },
+      { assignees: { some: { userId: assignedToId } } },
+    ]
+  }
 
   // Developer only sees assigned issues
   if (session.user.role === 'DEVELOPER') {
-    where.assignedToId = session.user.id
+    where.OR = [
+      { assignedToId: session.user.id },
+      { assignees: { some: { userId: session.user.id } } },
+    ]
   }
 
   const issues = await prisma.issue.findMany({
@@ -32,6 +43,11 @@ export async function GET(
     include: {
       createdBy: { select: { id: true, name: true, avatar: true } },
       assignedTo: { select: { id: true, name: true, avatar: true } },
+      assignees: {
+        include: {
+          user: { select: { id: true, name: true, avatar: true } },
+        },
+      },
       _count: { select: { comments: true } },
     },
     orderBy: { createdAt: 'desc' },
@@ -48,7 +64,7 @@ export async function POST(
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
-  const { title, description, priority, attachments, projectUpdateId } = await req.json()
+  const { title, description, priority, attachments, projectUpdateId, assigneeIds } = await req.json()
   if (!title) return NextResponse.json({ error: 'Title required' }, { status: 400 })
 
   // Hanya PM/Admin yang bisa buat issue
@@ -60,6 +76,8 @@ export async function POST(
     return NextResponse.json({ error: 'Hanya PM atau Admin yang bisa membuat issue' }, { status: 403 })
   }
 
+  const validAssigneeIds: string[] = Array.isArray(assigneeIds) ? assigneeIds : []
+
   const issue = await prisma.issue.create({
     data: {
       projectId: id,
@@ -68,10 +86,21 @@ export async function POST(
       priority: priority || 'MEDIUM',
       attachments: attachments || [],
       createdById: session.user.id,
+      assignedToId: validAssigneeIds[0] || null,
       projectUpdateId: projectUpdateId || null,
+      assignees: validAssigneeIds.length > 0 ? {
+        create: validAssigneeIds.map(userId => ({ userId }))
+      } : undefined,
     },
     include: {
-      createdBy: { select: { id: true, name: true } },
+      createdBy: { select: { id: true, name: true, avatar: true } },
+      assignedTo: { select: { id: true, name: true, avatar: true } },
+      assignees: {
+        include: {
+          user: { select: { id: true, name: true, avatar: true } },
+        },
+      },
+      project: { select: { name: true } },
     },
   })
 
@@ -83,6 +112,31 @@ export async function POST(
       action: 'CREATED',
     },
   })
+
+  // Notify assigned developers immediately via web & WA
+  if (validAssigneeIds.length > 0) {
+    const appUrl = process.env.APP_URL || 'https://teams.belanjamu.company'
+    for (const devId of validAssigneeIds) {
+      if (devId !== session.user.id) {
+        await createNotification({
+          userId: devId,
+          type: 'ISSUE_ASSIGNED',
+          title: 'Issue Baru Ditugaskan',
+          message: `Kamu ditugaskan pada issue: "${issue.title}"`,
+          referenceId: issue.id,
+          referenceType: 'issue',
+          waMessage: formatIssueAssigned({
+            projectName: issue.project?.name || 'Project',
+            issueId: issue.id,
+            issueTitle: issue.title,
+            priority: issue.priority,
+            projectId: id,
+            appUrl,
+          }),
+        }).catch(err => console.error('Failed notifying assignee on create:', err))
+      }
+    }
+  }
 
   // Emit realtime event
   emitSocket(`project:${id}`, 'issue:new', issue)

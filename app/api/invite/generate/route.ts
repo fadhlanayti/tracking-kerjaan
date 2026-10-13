@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
-  const { email, name, role, phone } = await req.json()
+  const { email, name, role, phone, position } = await req.json()
   if (!email || !name || !role) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
       email,
       name,
       phone: normalizedPhone,
+      position: position || null,
       role,
       password: '', // Will be set on claim
       inviteToken,

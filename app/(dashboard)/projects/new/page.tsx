@@ -14,6 +14,8 @@ interface User {
 export default function NewProjectPage() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [repository, setRepository] = useState('')
+  const [techStack, setTechStack] = useState('')
   const [users, setUsers] = useState<User[]>([])
   const [selectedMembers, setSelectedMembers] = useState<{ userId: string; role: string }[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -41,7 +43,13 @@ export default function NewProjectPage() {
     const res = await fetch('/api/projects', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, description, memberIds: selectedMembers }),
+      body: JSON.stringify({
+        name,
+        description,
+        repository: repository || null,
+        techStack: techStack || null,
+        memberIds: selectedMembers,
+      }),
     })
 
     if (res.ok) {
@@ -65,8 +73,8 @@ export default function NewProjectPage() {
               <ArrowLeft size={13} /> Dashboard
             </Link>
           </div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <FolderPlus size={24} style={{ color: 'var(--accent)' }} />
+          <h1 className='!text-white' style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <FolderPlus size={24} />
             Buat Proyek Baru
           </h1>
           <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0 }}>
@@ -104,10 +112,40 @@ export default function NewProjectPage() {
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   placeholder="Jelaskan ruang lingkup proyek, target, atau catatan penting..."
-                  rows={6}
+                  rows={4}
                   className="input resize-none"
                   style={{ fontSize: '0.875rem', lineHeight: 1.5 }}
                 />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="label" style={{ fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.375rem', display: 'block' }}>
+                    Repository URL
+                  </label>
+                  <input
+                    type="url"
+                    value={repository}
+                    onChange={e => setRepository(e.target.value)}
+                    placeholder="https://github.com/org/repo"
+                    className="input"
+                    style={{ fontSize: '0.875rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label className="label" style={{ fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.375rem', display: 'block' }}>
+                    Tech Stack
+                  </label>
+                  <input
+                    type="text"
+                    value={techStack}
+                    onChange={e => setTechStack(e.target.value)}
+                    placeholder="e.g. Next.js, Flutter, Laravel"
+                    className="input"
+                    style={{ fontSize: '0.875rem' }}
+                  />
+                </div>
               </div>
             </div>
 

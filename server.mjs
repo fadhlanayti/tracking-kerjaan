@@ -61,6 +61,10 @@ app.prepare().then(() => {
       socket.data = { projectId, userId, userName }
     })
 
+    socket.on('join:user', ({ userId }) => {
+      if (userId) socket.join(`user:${userId}`)
+    })
+
     socket.on('join:issue', ({ issueId }) => {
       socket.join(`issue:${issueId}`)
     })

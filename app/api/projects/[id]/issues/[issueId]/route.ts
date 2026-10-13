@@ -20,6 +20,11 @@ export async function GET(
     include: {
       createdBy: { select: { id: true, name: true, avatar: true } },
       assignedTo: { select: { id: true, name: true, avatar: true } },
+      assignees: {
+        include: {
+          user: { select: { id: true, name: true, avatar: true, email: true } },
+        },
+      },
       comments: {
         include: { author: { select: { id: true, name: true, avatar: true } } },
         orderBy: { createdAt: 'asc' },
@@ -58,7 +63,28 @@ export async function PATCH(
   if (body.priority !== undefined) data.priority = body.priority
   if (body.title !== undefined) data.title = body.title
   if (body.description !== undefined) data.description = body.description
-  if (body.assignedToId !== undefined) data.assignedToId = body.assignedToId
+
+  // Multi assignees update
+  let newAssigneeIds: string[] | null = null
+  if (Array.isArray(body.assigneeIds)) {
+    newAssigneeIds = body.assigneeIds
+    // sync assignedToId with first assignee for backward compatibility
+    data.assignedToId = (newAssigneeIds && newAssigneeIds.length > 0) ? newAssigneeIds[0] : null
+  } else if (body.assignedToId !== undefined) {
+    data.assignedToId = body.assignedToId
+    newAssigneeIds = body.assignedToId ? [body.assignedToId] : []
+  }
+
+  if (newAssigneeIds !== null) {
+    // Replace assignees in DB
+    await prisma.issueAssignee.deleteMany({ where: { issueId } })
+    if (newAssigneeIds.length > 0) {
+      await prisma.issueAssignee.createMany({
+        data: newAssigneeIds.map(userId => ({ issueId, userId })),
+        skipDuplicates: true,
+      })
+    }
+  }
 
   const issue = await prisma.issue.update({
     where: { id: issueId },
@@ -66,6 +92,11 @@ export async function PATCH(
     include: {
       createdBy: { select: { id: true, name: true } },
       assignedTo: { select: { id: true, name: true } },
+      assignees: {
+        include: {
+          user: { select: { id: true, name: true, avatar: true, email: true } },
+        },
+      },
       project: { select: { id: true, name: true } },
     },
   })
@@ -113,35 +144,48 @@ export async function PATCH(
     }
   }
 
-  // Track assignment
-  if (body.assignedToId && body.assignedToId !== oldIssue.assignedToId) {
-    await prisma.issueActivity.create({
-      data: {
-        issueId,
-        userId: session.user.id,
-        action: 'ASSIGNED',
-        metadata: { assignedToId: body.assignedToId },
-      },
-    })
+  // Track assignment & send notification to all newly assigned developers
+  if (newAssigneeIds !== null) {
+    const existingAssigneeIds = await prisma.issueAssignee
+      .findMany({ where: { issueId }, select: { userId: true } })
+      .then(list => list.map(a => a.userId))
 
-    const { formatIssueAssigned } = await import('@/lib/whatsapp')
-    await createNotification({
-      userId: body.assignedToId,
-      type: 'ISSUE_ASSIGNED',
-      title: 'New Issue Assigned',
-      message: `You've been assigned issue: ${oldIssue.title}`,
-      referenceId: issueId,
-      referenceType: 'issue',
-      waMessage: formatIssueAssigned({
-        projectName: oldIssue.project.name,
-        issueId,
-        issueTitle: oldIssue.title,
-        priority: issue.priority,
-        projectId: id,
-        appUrl: process.env.APP_URL!,
-      }),
-    })
+    const addedIds = newAssigneeIds.filter(uid => !existingAssigneeIds.includes(uid) && uid !== session.user.id)
+
+    if (addedIds.length > 0) {
+      const { formatIssueAssigned } = await import('@/lib/whatsapp')
+      for (const devId of addedIds) {
+        await prisma.issueActivity.create({
+          data: {
+            issueId,
+            userId: session.user.id,
+            action: 'ASSIGNED',
+            metadata: { assignedToId: devId },
+          },
+        }).catch(() => {})
+
+        await createNotification({
+          userId: devId,
+          type: 'ISSUE_ASSIGNED',
+          title: 'Issue Baru Ditugaskan',
+          message: `Kamu ditugaskan pada issue: "${oldIssue.title}"`,
+          referenceId: issueId,
+          referenceType: 'issue',
+          waMessage: formatIssueAssigned({
+            projectName: oldIssue.project.name,
+            issueId,
+            issueTitle: oldIssue.title,
+            priority: issue.priority,
+            projectId: id,
+            appUrl: process.env.APP_URL || 'https://teams.belanjamu.company',
+          }),
+        }).catch(err => console.error('Failed notifying assignee:', err))
+      }
+    }
   }
+
+  // Realtime Socket broadcast issue update
+  emitSocket(`project:${id}`, 'issue:updated', issue)
 
   return NextResponse.json(issue)
 }

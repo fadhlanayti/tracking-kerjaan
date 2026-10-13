@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { emitSocket } from '@/lib/socket'
+import { createNotification } from '@/lib/notifications'
+import { formatProjectUpdate } from '@/lib/whatsapp'
 
 export async function GET(
   req: NextRequest,
@@ -94,6 +96,46 @@ export async function POST(
 
   // Emit realtime event
   emitSocket(`project:${id}`, 'project:update:new', update)
+
+  // Notify all CLIENT members of this project via Web Notification + WhatsApp
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id },
+      select: {
+        name: true,
+        members: {
+          where: { role: 'CLIENT' },
+          select: { userId: true },
+        },
+      },
+    })
+
+    if (project && project.members.length > 0) {
+      const appUrl = process.env.APP_URL || 'https://teams.belanjamu.company'
+      const waMsg = formatProjectUpdate({
+        projectName: project.name,
+        title: update.title,
+        authorName: user.name || 'Tim Developer',
+        status: update.status,
+        projectId: id,
+        appUrl,
+      })
+
+      for (const clientMember of project.members) {
+        await createNotification({
+          userId: clientMember.userId,
+          type: 'PROJECT_UPDATED',
+          title: 'Update Progress Proyek',
+          message: `${project.name}: "${update.title}" (${update.status})`,
+          referenceId: id,
+          referenceType: 'project',
+          waMessage: waMsg,
+        }).catch(err => console.error('Failed notifying client:', err))
+      }
+    }
+  } catch (notifErr) {
+    console.error('Error in notifying clients for project update:', notifErr)
+  }
 
   return NextResponse.json(update, { status: 201 })
 }
