@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, use, useRef } from 'react'
 import { useSession } from 'next-auth/react'
-import { Plus, X, ArrowLeft, Ticket, Trash2, RotateCcw, Image as ImageIcon } from 'lucide-react'
+import { Plus, X, ArrowLeft, Ticket, Trash2, RotateCcw, FileText, Paperclip, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 
 interface TicketItem {
@@ -50,13 +50,44 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
   const [type, setType] = useState('OTHER')
   const [submitting, setSubmitting] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<{ file: File; preview: string }[]>([])
+  const [fileError, setFileError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const MAX_FILE_SIZE = 15 * 1024 * 1024 // 15MB
+  const ALLOWED_EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.pdf', '.zip', '.mp4', '.webm']
+
   function handlePickFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    setFileError(null)
     const files = e.target.files
     if (!files || files.length === 0) return
-    const newFiles = Array.from(files).map(file => ({ file, preview: URL.createObjectURL(file) }))
-    setPendingFiles(prev => [...prev, ...newFiles])
+
+    const validFiles: { file: File; preview: string }[] = []
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+
+      // Validasi ukuran file (Max 15MB)
+      if (file.size > MAX_FILE_SIZE) {
+        setFileError(`File "${file.name}" terlalu besar. Maksimal 15MB.`)
+        continue
+      }
+
+      // Validasi ekstensi file
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase()
+      if (!ALLOWED_EXTS.includes(ext)) {
+        setFileError(`Tipe file "${file.name}" tidak diizinkan. Format yang didukung: JPG, PNG, WEBP, PDF, ZIP, MP4.`)
+        continue
+      }
+
+      validFiles.push({
+        file,
+        preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : ''
+      })
+    }
+
+    if (validFiles.length > 0) {
+      setPendingFiles(prev => [...prev, ...validFiles])
+    }
     if (e.target) e.target.value = ''
   }
 
@@ -319,11 +350,29 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                 {/* Attachments */}
                 {Array.isArray(ticket.attachments) && ticket.attachments.length > 0 && (
                   <div className="flex gap-2 flex-wrap" style={{ marginTop: '0.75rem' }}>
-                    {(ticket.attachments as string[]).map((url, i) => (
-                      <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                        <img src={url} alt={`lampiran ${i + 1}`} style={{ width: '4rem', height: '4rem', objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
-                      </a>
-                    ))}
+                    {(ticket.attachments as string[]).map((url, i) => {
+                      const isImg = /\.(jpg|jpeg|png|webp|gif|svg)($|\?)/i.test(url)
+                      return (
+                        <a
+                          key={i}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 p-1.5 rounded-lg border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-xs text-zinc-700 transition-colors"
+                        >
+                          {isImg ? (
+                            <img src={url} alt={`lampiran ${i + 1}`} className="w-10 h-10 object-cover rounded-md border border-black/5" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-md bg-white border border-zinc-200 flex items-center justify-center text-blue-600">
+                              <FileText size={18} />
+                            </div>
+                          )}
+                          <span className="font-medium max-w-[120px] truncate text-[11px]">
+                            {url.split('/').pop() || `Lampiran ${i + 1}`}
+                          </span>
+                        </a>
+                      )
+                    })}
                   </div>
                 )}
 
@@ -480,15 +529,29 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
               </div>
 
               <div>
-                <label className="label text-xs font-semibold mb-1.5 block">Lampiran Foto <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opsional)</span></label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="label text-xs font-semibold block">
+                    Lampiran Dokumen / File <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opsional)</span>
+                  </label>
+                  <span className="text-[11px] text-zinc-400">Max 15MB/file (PDF, ZIP, Gambar)</span>
+                </div>
+
                 <input
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  accept="image/*"
+                  accept=".jpg,.jpeg,.png,.webp,.gif,.svg,.pdf,.zip,.mp4,.webm"
                   className="hidden"
                   onChange={handlePickFiles}
                 />
+
+                {fileError && (
+                  <div className="flex items-center gap-1.5 p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs mb-2">
+                    <AlertCircle size={14} className="shrink-0" />
+                    <span>{fileError}</span>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
@@ -496,15 +559,27 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                     className="btn-secondary text-xs"
                     style={{ padding: '0.4rem 0.75rem' }}
                   >
-                    <ImageIcon size={13} /> Pilih Foto
+                    <Paperclip size={13} /> Pilih File / Lampiran
                   </button>
+
                   {pendingFiles.map((p, i) => (
-                    <div key={i} className="relative w-12 h-12 rounded-lg border border-zinc-200 overflow-hidden group">
-                      <img src={p.preview} alt="" className="w-full h-full object-cover" />
+                    <div key={i} className="relative group flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-zinc-200 bg-zinc-50 text-xs">
+                      {p.preview ? (
+                        <img src={p.preview} alt="" className="w-6 h-6 rounded object-cover" />
+                      ) : (
+                        <FileText size={16} className="text-blue-600 shrink-0" />
+                      )}
+                      <span className="max-w-28 truncate text-[11px] font-medium text-zinc-700">
+                        {p.file.name}
+                      </span>
+                      <span className="text-[10px] text-zinc-400">
+                        ({(p.file.size / 1024 / 1024).toFixed(1)}MB)
+                      </span>
                       <button
                         type="button"
                         onClick={() => removePendingFile(i)}
-                        className="absolute inset-0 bg-red-600/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border-none cursor-pointer"
+                        className="text-zinc-400 hover:text-rose-600 transition-colors ml-1 cursor-pointer border-none bg-transparent p-0 flex items-center"
+                        title="Hapus file"
                       >
                         <X size={12} />
                       </button>
