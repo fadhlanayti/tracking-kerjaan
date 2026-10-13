@@ -803,8 +803,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               <div className="flex items-center justify-center text-white text-2xl font-bold shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-[#0071E3] to-[#0051A8] shadow-lg shadow-blue-500/25 border border-white/20">
                 {project.name[0].toUpperCase()}
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2.5 flex-wrap">
+              <div className="min-w-0 flex-1 flex flex-col gap-3.5">
+                {/* 1. Baris Judul Project */}
+                <div className="flex items-center gap-3 flex-wrap">
                   <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white truncate">
                     {project.name}
                   </h1>
@@ -822,9 +823,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   )}
                 </div>
 
-                {/* Tech Stack Badges with Authentic Vector Logos */}
+                {/* 2. Baris Badge Tech Stack */}
                 {project.techStack && (
-                  <div className="flex items-center gap-2 flex-wrap mt-3.5 mb-3">
+                  <div className="flex items-center gap-2 flex-wrap py-0.5">
                     {project.techStack.split(',').map(s => s.trim()).filter(Boolean).map(techName => {
                       const preset = findTechPreset(techName)
                       const displayName = preset ? preset.name : techName.replace(/\.+$/, '')
@@ -847,9 +848,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   </div>
                 )}
 
-                {/* Project Description with Generous Spacing */}
+                {/* 3. Baris Deskripsi Project */}
                 {project.description && (
-                  <p className="text-xs sm:text-sm text-zinc-300/95 leading-relaxed break-words pt-1">
+                  <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed break-words">
                     {renderDescriptionWithLinks(project.description)}
                   </p>
                 )}
