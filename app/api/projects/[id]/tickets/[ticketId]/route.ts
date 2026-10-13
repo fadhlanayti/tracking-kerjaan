@@ -42,7 +42,7 @@ export async function PATCH(
     where: { projectId: id, userId: user.id, role: 'PM' },
   })
 
-  // PM/Admin can change status & pmNotes; creator can edit title/description/type if still PENDING
+  // PM/Admin can change status & pmNotes; creator can edit title/description/type/attachments if PENDING or REVISION
   const isCreator = existing.createdById === user.id
   const data: any = {}
 
@@ -54,9 +54,16 @@ export async function PATCH(
     if (!isPMorAdmin) return NextResponse.json({ error: 'Hanya PM atau Admin yang bisa memberi catatan' }, { status: 403 })
     data.pmNotes = body.pmNotes
   }
-  if (body.title !== undefined && isCreator && existing.status === 'PENDING') data.title = body.title.trim()
-  if (body.description !== undefined && isCreator && existing.status === 'PENDING') data.description = body.description
-  if (body.type !== undefined && isCreator && existing.status === 'PENDING') data.type = body.type
+
+  const canCreatorEdit = isCreator && (existing.status === 'PENDING' || existing.status === 'REVISION')
+  if (body.title !== undefined && canCreatorEdit) data.title = body.title.trim()
+  if (body.description !== undefined && canCreatorEdit) data.description = body.description
+  if (body.type !== undefined && canCreatorEdit) data.type = body.type
+  if (body.attachments !== undefined && canCreatorEdit && Array.isArray(body.attachments)) data.attachments = body.attachments
+  // If creator updates ticket that was in REVISION, reset status back to PENDING for re-review
+  if (isCreator && existing.status === 'REVISION' && (body.title || body.description || body.attachments || body.type)) {
+    data.status = 'PENDING'
+  }
 
   const ticket = await prisma.ticket.update({
     where: { id: ticketId },
