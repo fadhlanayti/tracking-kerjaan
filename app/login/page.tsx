@@ -157,16 +157,27 @@ export default function LoginPage() {
             </form>
           </div>
 
-          {/* Footer note */}
+          {/* Footer note & version badge */}
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             fontSize: '0.6875rem',
-            color: '#71717A'
+            color: '#71717A',
+            gap: '0.5rem',
+            flexWrap: 'wrap'
           }}>
             <span>WeballCreative © 2026</span>
-            <span style={{ color: '#52525B' }}>Project Tracker</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{
+                display: 'inline-block',
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: '#10B981'
+              }} />
+              <span style={{ color: '#52525B', fontWeight: 500 }}>Project Tracker v2.1</span>
+            </div>
           </div>
         </div>
 
