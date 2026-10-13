@@ -24,18 +24,18 @@ interface Member {
   role: string
 }
 
-const TYPE_CONFIG: Record<string, { label: string; icon: string; bg: string; text: string; border: string }> = {
-  DEPLOY:  { label: 'Deploy',    icon: '🚀', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
-  FEATURE: { label: 'Fitur Baru', icon: '✨', bg: 'bg-blue-500/10',    text: 'text-blue-400',    border: 'border-blue-500/20' },
-  BUGFIX:  { label: 'Bugfix',    icon: '🐛', bg: 'bg-rose-500/10',    text: 'text-rose-400',    border: 'border-rose-500/20' },
-  OTHER:   { label: 'Lainnya',   icon: '📋', bg: 'bg-zinc-500/10',    text: 'text-zinc-400',    border: 'border-zinc-500/20' },
+const TYPE_CONFIG: Record<string, { label: string; icon: string }> = {
+  DEPLOY:  { label: 'Deploy',    icon: '🚀' },
+  FEATURE: { label: 'Fitur Baru', icon: '✨' },
+  BUGFIX:  { label: 'Bugfix',    icon: '🐛' },
+  OTHER:   { label: 'Lainnya',   icon: '📋' },
 }
 
-const STATUS_THEME: Record<string, { label: string; dot: string; badge: string; text: string; icon: any }> = {
-  PENDING:  { label: 'Menunggu Review', dot: 'bg-amber-400', badge: 'bg-amber-500/10 border-amber-500/30 text-amber-300', text: 'text-amber-400', icon: Clock },
-  APPROVED: { label: 'Disetujui',       dot: 'bg-emerald-400', badge: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300', text: 'text-emerald-400', icon: CheckCircle2 },
-  REJECTED: { label: 'Ditolak',         dot: 'bg-rose-400', badge: 'bg-rose-500/10 border-rose-500/30 text-rose-300', text: 'text-rose-400', icon: XCircle },
-  REVISION: { label: 'Perlu Revisi',    dot: 'bg-sky-400', badge: 'bg-sky-500/10 border-sky-500/30 text-sky-300', text: 'text-sky-400', icon: AlertTriangle },
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  PENDING:  { label: 'Menunggu',    color: '#D97706', bg: '#FEF3C7' },
+  APPROVED: { label: 'Disetujui',   color: '#15803D', bg: '#DCFCE7' },
+  REVISION: { label: 'Perlu Revisi',color: '#0284C7', bg: '#E0F2FE' },
+  REJECTED: { label: 'Ditolak',     color: '#DC2626', bg: '#FEE2E2' },
 }
 
 export default function TicketsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -285,25 +285,28 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto pb-16 pt-2">
+    <div style={{ width: '100%', maxWidth: 1024, margin: '0 auto', paddingTop: '0.75rem', paddingBottom: '4rem' }}>
       {/* Top Header */}
-      <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
-        <div className="flex items-center gap-3">
+      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <Link
             href={`/projects/${id}`}
-            className="w-9 h-9 rounded-xl bg-white border border-zinc-200 text-zinc-600 hover:text-black hover:border-zinc-300 flex items-center justify-center transition-all shadow-2xs"
+            className="btn-secondary"
+            style={{ width: 36, height: 36, padding: 0, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}
           >
             <ArrowLeft size={16} />
           </Link>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold tracking-tight text-black m-0">Tickets</h1>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-zinc-900 text-white">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h1 className="!text-black" style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: '#000000' }}>
+                Tickets
+              </h1>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.15rem 0.5rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 600, backgroundColor: 'rgba(0, 0, 0, 0.06)', color: 'var(--text-secondary)' }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10B981' }} />
                 Live
               </span>
             </div>
-            <p className="text-xs text-zinc-500 m-0 mt-0.5">
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.375rem', marginBottom: 0 }}>
               Antrean permintaan fitur, bugfix, dan persetujuan deployment oleh PM
             </p>
           </div>
@@ -312,17 +315,17 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
         {canCreate && (
           <button
             onClick={openCreateModal}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-98 transition-all shadow-sm cursor-pointer border-none"
+            className="btn-primary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', cursor: 'pointer' }}
           >
-            <Plus size={15} />
-            <span>Buat Ticket</span>
+            <Plus size={16} /> Buat Ticket
           </button>
         )}
       </div>
 
-      {/* Filter Tabs Toolbar */}
-      <div className="flex items-center justify-between gap-3 mb-6 p-1.5 rounded-2xl bg-white/70 backdrop-blur-md border border-zinc-200/80 shadow-2xs flex-wrap">
-        <div className="flex items-center gap-1 overflow-x-auto p-0.5">
+      {/* Filter toolbar - Sesuai card filter Issues */}
+      <div className="card p-3.5" style={{ marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem' }}>
           {[
             { key: '', label: 'Semua', count: tickets.length },
             { key: 'PENDING', label: 'Menunggu', count: tickets.filter(t => t.status === 'PENDING').length },
@@ -334,102 +337,154 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
             return (
               <button
                 key={tab.key}
+                type="button"
                 onClick={() => setFilter(tab.key)}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border-none ${
-                  active
-                    ? 'bg-zinc-950 text-white shadow-xs'
-                    : 'bg-transparent text-zinc-600 hover:text-black hover:bg-zinc-100/80'
-                }`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  border: active ? '1px solid #18181B' : '1px solid var(--border)',
+                  backgroundColor: active ? '#18181B' : 'var(--bg-elevated)',
+                  color: active ? '#FFFFFF' : 'var(--text-secondary)',
+                  transition: 'all 0.15s ease',
+                }}
               >
                 <span>{tab.label}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
-                  active ? 'bg-zinc-800 text-zinc-300' : 'bg-zinc-100 text-zinc-500'
-                }`}>
+                <span
+                  style={{
+                    fontSize: '0.6875rem',
+                    padding: '0.05rem 0.4rem',
+                    borderRadius: '9999px',
+                    backgroundColor: active ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.06)',
+                    color: active ? '#FFFFFF' : 'var(--text-muted)',
+                  }}
+                >
                   {tab.count}
                 </span>
               </button>
             )
           })}
         </div>
+
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', padding: '0 0.5rem' }}>
+          Total: <strong style={{ color: 'var(--text-primary)' }}>{tickets.length}</strong> ticket
+        </div>
       </div>
 
       {/* Tickets Feed */}
       {tickets.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-zinc-200 p-12 text-center shadow-xs flex flex-col items-center justify-center">
-          <div className="w-12 h-12 rounded-2xl bg-zinc-100 border border-zinc-200/80 text-zinc-400 flex items-center justify-center mb-3">
-            <Ticket size={24} />
-          </div>
-          <p className="text-sm font-bold text-zinc-800 m-0">Belum ada ticket</p>
-          <p className="text-xs text-zinc-500 m-0 mt-1 max-w-sm">
+        <div className="card p-12" style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          <AlertCircle size={28} style={{ margin: '0 auto 0.5rem', opacity: 0.4 }} />
+          <p style={{ margin: 0, fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>Belum ada ticket</p>
+          <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)' }}>
             {filter ? 'Tidak ada ticket dengan filter status ini.' : 'Buat ticket baru untuk meminta persetujuan perubahan atau deploy ke PM.'}
           </p>
           {canCreate && !filter && (
             <button
               onClick={openCreateModal}
-              className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all cursor-pointer border-none"
+              className="btn-primary"
+              style={{ marginTop: '1rem', fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
             >
               <Plus size={14} /> Buat Ticket Pertama
             </button>
           )}
         </div>
       ) : (
-        <div className="flex flex-col gap-3.5">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
           {tickets.map(ticket => {
-            const statusMeta = STATUS_THEME[ticket.status] || STATUS_THEME.PENDING
-            const StatusIcon = statusMeta.icon
+            const statusConfig = STATUS_CONFIG[ticket.status] || STATUS_CONFIG.PENDING
             const typeMeta = TYPE_CONFIG[ticket.type] || TYPE_CONFIG.OTHER
             const isReviewing = reviewingId === ticket.id
             const isCreator = ticket.createdBy.id === (session?.user as any)?.id
             const isRevision = ticket.status === 'REVISION'
-
-            // Format clean ticket code #TCK-XXXX
             const shortCode = ticket.id.replace(/[^a-zA-Z0-9]/g, '').slice(-5).toUpperCase()
 
             return (
               <div
                 key={ticket.id}
-                className="group relative bg-white rounded-2xl border border-zinc-200/90 hover:border-zinc-300 p-4 sm:p-5 transition-all shadow-2xs hover:shadow-sm"
+                className="card p-4.5"
+                style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', transition: 'box-shadow 0.15s ease' }}
               >
-                {/* Header row: ID tag, type pill, status badge, action buttons */}
-                <div className="flex items-center justify-between gap-2 flex-wrap mb-2.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {/* Clean Code Pill */}
-                    <span className="font-mono text-[11px] font-bold text-zinc-600 bg-zinc-100 border border-zinc-200 px-2 py-0.5 rounded-md">
+                {/* Header Row: ID, Tipe, Status & Action */}
+                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {/* Ticket Code Tag */}
+                    <span
+                      style={{
+                        fontFamily: 'monospace',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: 'var(--text-secondary)',
+                        backgroundColor: 'var(--bg-elevated)',
+                        border: '1px solid var(--border)',
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: '6px',
+                      }}
+                    >
                       #{shortCode}
                     </span>
 
-                    {/* Type badge */}
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-700 bg-zinc-50 border border-zinc-200 px-2 py-0.5 rounded-md">
+                    {/* Type Tag */}
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        color: 'var(--text-secondary)',
+                        backgroundColor: 'var(--bg-elevated)',
+                        border: '1px solid var(--border)',
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: '6px',
+                      }}
+                    >
                       <span>{typeMeta.icon}</span>
                       <span>{typeMeta.label}</span>
                     </span>
 
-                    {/* Status badge */}
-                    <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${statusMeta.badge}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />
-                      <span>{statusMeta.label}</span>
+                    {/* Status Badge */}
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        padding: '0.2rem 0.6rem',
+                        borderRadius: '6px',
+                        color: statusConfig.color,
+                        backgroundColor: statusConfig.bg,
+                      }}
+                    >
+                      {statusConfig.label}
                     </span>
                   </div>
 
                   {/* Actions Right */}
-                  <div className="flex items-center gap-1.5">
-                    {/* Tombol edit untuk creator jika revisi atau pending */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     {isCreator && (ticket.status === 'REVISION' || ticket.status === 'PENDING') && (
                       <button
                         onClick={() => openEditModal(ticket)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer border transition-all ${
-                          isRevision
-                            ? 'bg-sky-500 text-white border-sky-600 shadow-xs hover:bg-sky-600'
-                            : 'bg-zinc-50 hover:bg-zinc-100 text-zinc-700 border-zinc-200'
-                        }`}
-                        title="Edit ticket ini langsung"
+                        className={isRevision ? 'btn-primary' : 'btn-secondary'}
+                        style={{
+                          fontSize: '0.75rem',
+                          padding: '0.35rem 0.75rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          cursor: 'pointer',
+                        }}
                       >
-                        <Edit3 size={12} />
+                        <Edit3 size={13} />
                         <span>{isRevision ? 'Perbaiki Ticket' : 'Edit'}</span>
                       </button>
                     )}
 
-                    {/* Tombol PM Review */}
                     {isPMorAdmin && ticket.status === 'PENDING' && (
                       <button
                         onClick={() => {
@@ -437,39 +492,45 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                           setPmNotes('')
                           setReviewStatus('APPROVED')
                         }}
-                        className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white border-none cursor-pointer shadow-xs transition-all"
+                        className="btn-primary"
+                        style={{
+                          fontSize: '0.75rem',
+                          padding: '0.35rem 0.85rem',
+                          cursor: 'pointer',
+                        }}
                       >
-                        Review
+                        Review PM
                       </button>
                     )}
 
-                    {/* Delete */}
                     {canDelete(ticket) && (
                       <button
                         onClick={() => deleteTicket(ticket.id)}
-                        className="w-7 h-7 rounded-lg inline-flex items-center justify-center text-zinc-400 hover:text-rose-600 hover:bg-rose-50 transition-colors border-none bg-transparent cursor-pointer p-0"
+                        className="inline-flex items-center justify-center p-1.5 rounded-full text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                        style={{ background: 'none', border: 'none' }}
                         title="Hapus ticket"
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={14} />
                       </button>
                     )}
                   </div>
                 </div>
 
                 {/* Title & Desc */}
-                <h3 className="text-sm sm:text-base font-bold text-zinc-900 leading-snug m-0 mb-1">
-                  {ticket.title}
-                </h3>
-
-                {ticket.description && (
-                  <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed m-0 mb-3 whitespace-pre-wrap break-words">
-                    {ticket.description}
-                  </p>
-                )}
+                <div>
+                  <h3 style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 0.35rem' }}>
+                    {ticket.title}
+                  </h3>
+                  {ticket.description && (
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      {ticket.description}
+                    </p>
+                  )}
+                </div>
 
                 {/* Attachments preview */}
                 {Array.isArray(ticket.attachments) && ticket.attachments.length > 0 && (
-                  <div className="flex gap-2 flex-wrap my-3 pt-1">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', paddingTop: '0.25rem' }}>
                     {(ticket.attachments as string[]).map((url, i) => {
                       const isImg = /\.(jpg|jpeg|png|webp|gif|svg)($|\?)/i.test(url)
                       if (isImg) {
@@ -478,10 +539,21 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                             key={i}
                             type="button"
                             onClick={() => openImage(url)}
-                            className="inline-flex items-center gap-1.5 p-1 rounded-lg border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-xs text-zinc-700 transition-colors cursor-pointer text-left"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.375rem',
+                              padding: '0.25rem 0.5rem',
+                              borderRadius: '8px',
+                              border: '1px solid var(--border)',
+                              backgroundColor: 'var(--bg-elevated)',
+                              cursor: 'pointer',
+                              color: 'var(--text-secondary)',
+                              fontSize: '0.75rem',
+                            }}
                           >
-                            <img src={url} alt={`attachment ${i+1}`} className="w-10 h-10 object-cover rounded-md border border-black/5" />
-                            <span className="font-medium max-w-28 truncate text-[11px] pr-1.5">
+                            <img src={url} alt={`attachment ${i+1}`} style={{ width: 28, height: 28, objectFit: 'cover', borderRadius: '4px' }} />
+                            <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {url.split('/').pop() || `Lampiran ${i + 1}`}
                             </span>
                           </button>
@@ -493,12 +565,21 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                           href={url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 p-1.5 rounded-lg border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-xs text-zinc-700 transition-colors"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.375rem',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border)',
+                            backgroundColor: 'var(--bg-elevated)',
+                            textDecoration: 'none',
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.75rem',
+                          }}
                         >
-                          <div className="w-8 h-8 rounded-md bg-white border border-zinc-200 flex items-center justify-center text-blue-600">
-                            <FileText size={16} />
-                          </div>
-                          <span className="font-medium max-w-28 truncate text-[11px] pr-1.5">
+                          <FileText size={14} color="#0071E3" />
+                          <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {url.split('/').pop() || `Lampiran ${i + 1}`}
                           </span>
                         </a>
@@ -507,25 +588,33 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                   </div>
                 )}
 
-                {/* PM Notes Callout */}
+                {/* PM Notes Callout - Soft clean alert banner matching dashboard */}
                 {ticket.pmNotes && (
-                  <div className="my-3 p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 mb-1">
+                  <div
+                    style={{
+                      padding: '0.75rem 1rem',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(255, 149, 0, 0.08)',
+                      border: '1px solid rgba(255, 149, 0, 0.25)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', fontWeight: 600, color: '#B45309', marginBottom: '0.25rem' }}>
                       <AlertTriangle size={13} />
                       <span>Catatan Project Manager:</span>
                     </div>
-                    <p className="text-xs text-zinc-300 m-0 leading-relaxed whitespace-pre-wrap">
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
                       {ticket.pmNotes}
                     </p>
                   </div>
                 )}
 
                 {/* Meta info bottom */}
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-100 text-[11px] text-zinc-400">
-                  <div className="flex items-center gap-1.5">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                     <span>Diajukan oleh:</span>
-                    <strong className="text-zinc-700 font-semibold">{ticket.createdBy.name}</strong>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-100 text-zinc-600 font-mono">
+                    <strong style={{ color: 'var(--text-primary)' }}>{ticket.createdBy.name}</strong>
+                    <span style={{ fontSize: '0.6875rem', padding: '0.1rem 0.35rem', borderRadius: '4px', backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                       {ticket.createdBy.role}
                     </span>
                   </div>
@@ -542,20 +631,28 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
 
                 {/* Inline PM Review Panel */}
                 {isReviewing && isPMorAdmin && (
-                  <div className="mt-4 pt-4 border-t border-zinc-200 flex flex-col gap-3">
-                    <p className="text-xs font-bold text-zinc-900 m-0">Keputusan Review PM:</p>
-                    <div className="flex gap-2 flex-wrap">
+                  <div style={{ marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Keputusan Review PM:</p>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                       {(['APPROVED', 'REVISION', 'REJECTED'] as const).map(s => {
-                        const m = STATUS_THEME[s]
+                        const m = STATUS_CONFIG[s]
                         const isSel = reviewStatus === s
                         return (
                           <button
                             key={s}
                             type="button"
                             onClick={() => setReviewStatus(s)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border cursor-pointer transition-all ${
-                              isSel ? `${m.badge} shadow-xs` : 'bg-zinc-50 border-zinc-200 text-zinc-500 hover:text-black'
-                            }`}
+                            style={{
+                              padding: '0.35rem 0.75rem',
+                              borderRadius: '6px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              border: isSel ? `1px solid ${m.color}` : '1px solid var(--border)',
+                              backgroundColor: isSel ? m.bg : 'var(--bg-elevated)',
+                              color: isSel ? m.color : 'var(--text-secondary)',
+                              transition: 'all 0.15s ease',
+                            }}
                           >
                             {m.label}
                           </button>
@@ -567,20 +664,23 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                       placeholder="Tulis alasan atau instruksi revisi..."
                       value={pmNotes}
                       onChange={e => setPmNotes(e.target.value)}
-                      className="w-full text-xs p-2.5 rounded-xl border border-zinc-200 outline-none focus:border-zinc-400 resize-none font-sans"
+                      className="input resize-none"
+                      style={{ fontSize: '0.75rem', padding: '0.5rem' }}
                     />
-                    <div className="flex justify-end gap-2">
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                       <button
                         type="button"
                         onClick={() => setReviewingId(null)}
-                        className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border-none cursor-pointer"
+                        className="btn-secondary"
+                        style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}
                       >
                         Batal
                       </button>
                       <button
                         type="button"
                         onClick={() => reviewTicket(ticket.id)}
-                        className="px-4 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white border-none cursor-pointer shadow-xs"
+                        className="btn-primary"
+                        style={{ fontSize: '0.75rem', padding: '0.35rem 0.85rem' }}
                       >
                         Simpan Keputusan
                       </button>

@@ -71,6 +71,29 @@ Issue: #${data.issueId} ${data.issueTitle}
 Buka: ${data.appUrl}/projects/${data.projectId}/issues/${data.issueId}`
 }
 
+export function formatTicketRevised(data: {
+  creatorName: string
+  projectName: string
+  ticketTitle: string
+  ticketType: string
+  projectId: string
+  appUrl: string
+}): string {
+  const typeLabel: Record<string, string> = {
+    DEPLOY: '🚀 Deploy',
+    FEATURE: '✨ Fitur Baru',
+    BUGFIX: '🐛 Bugfix',
+    OTHER: '📋 Lainnya',
+  }
+  return `[WeballCreative] Ticket telah direvisi oleh developer:
+Proyek: ${data.projectName}
+Oleh: ${data.creatorName}
+Tipe: ${typeLabel[data.ticketType] || data.ticketType}
+Judul: "${data.ticketTitle}"
+Status: Menunggu Review Ulang PM
+Buka: ${data.appUrl}/projects/${data.projectId}/tickets`
+}
+
 export function formatTicketNew(data: {
   creatorName: string
   projectName: string

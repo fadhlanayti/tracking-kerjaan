@@ -60,8 +60,9 @@ export async function PATCH(
   if (body.description !== undefined && canCreatorEdit) data.description = body.description
   if (body.type !== undefined && canCreatorEdit) data.type = body.type
   if (body.attachments !== undefined && canCreatorEdit && Array.isArray(body.attachments)) data.attachments = body.attachments
-  // If creator updates ticket that was in REVISION, reset status back to PENDING for re-review
-  if (isCreator && existing.status === 'REVISION' && (body.title || body.description || body.attachments || body.type)) {
+  // Check if ticket was in REVISION and now updated by creator
+  const isRevisedByCreator = isCreator && existing.status === 'REVISION' && (body.title || body.description || body.attachments || body.type)
+  if (isRevisedByCreator) {
     data.status = 'PENDING'
   }
 
@@ -70,6 +71,42 @@ export async function PATCH(
     data,
     include: { createdBy: { select: { id: true, name: true, role: true, avatar: true } } },
   })
+
+  // Notify PM and Admin when creator updates a REVISION ticket
+  if (isRevisedByCreator) {
+    const pmMembers = await prisma.projectMember.findMany({
+      where: { projectId: id, role: 'PM' },
+      select: { userId: true },
+    })
+    const admins = await prisma.user.findMany({
+      where: { role: 'ADMIN' },
+      select: { id: true },
+    })
+    const notifyIds = new Set([...pmMembers.map(m => m.userId), ...admins.map(a => a.id)])
+    notifyIds.delete(user.id)
+
+    const revisedTitle = data.title || existing.title
+    const revisedType = data.type || existing.type
+
+    for (const targetUserId of notifyIds) {
+      await createNotification({
+        userId: targetUserId,
+        type: 'TICKET_STATUS',
+        title: 'Ticket Selesai Direvisi',
+        message: `${user.name || 'User'} telah merevisi ticket "${revisedTitle}" di proyek ${existing.project.name}`,
+        referenceId: ticketId,
+        referenceType: 'ticket',
+        waMessage: (await import('@/lib/whatsapp')).formatTicketRevised({
+          creatorName: user.name || 'User',
+          projectName: existing.project.name,
+          ticketTitle: revisedTitle,
+          ticketType: revisedType,
+          projectId: id,
+          appUrl: process.env.APP_URL || '',
+        }),
+      })
+    }
+  }
 
   // Notify creator about status change
   if (body.status && body.status !== existing.status && existing.createdById !== user.id) {
