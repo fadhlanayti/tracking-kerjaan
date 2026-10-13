@@ -971,28 +971,85 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   {/* Update Header (Clickable Accordion) */}
                   <div
                     onClick={() => toggleUpdateExpand(up.id)}
-                    className="relative cursor-pointer select-none"
+                    className="cursor-pointer select-none"
                   >
-                    <div className="flex items-start gap-3 min-w-0 pr-16 sm:pr-24">
+                    <div className="flex items-start gap-3">
+                      {/* Chevron toggle */}
                       <div className="text-zinc-400 hover:text-zinc-700 transition-colors shrink-0 mt-1">
                         {expandedUpdateIds[up.id] ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                       </div>
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs text-white shrink-0 bg-gradient-to-br from-[#0071E3] to-[#0051A8] shadow-xs overflow-hidden">
+
+                      {/* Author Avatar */}
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs text-white shrink-0 bg-gradient-to-br from-[#0071E3] to-[#0051A8] shadow-xs overflow-hidden">
                         {up.author.avatar ? (
                           <img src={up.author.avatar} alt={up.author.name} className="w-full h-full object-cover" />
                         ) : (
                           up.author.name[0].toUpperCase()
                         )}
                       </div>
-                      <div className="min-w-0 flex-1 flex flex-col gap-1.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-bold text-zinc-900 leading-snug">{up.title}</span>
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-700 bg-zinc-100/90 border border-zinc-200/80 px-2 py-0.5 rounded-full">
+
+                      {/* Main Info Column */}
+                      <div className="min-w-0 flex-1 flex flex-col gap-2">
+                        {/* Row 1: Title + Action Buttons */}
+                        <div className="flex items-start justify-between gap-3">
+                          <h3 className="text-sm font-bold text-zinc-900 leading-snug break-words">
+                            {up.title}
+                          </h3>
+
+                          {/* Action Buttons Top-Right */}
+                          <div
+                            onClick={e => e.stopPropagation()}
+                            className="flex items-center gap-1.5 shrink-0"
+                          >
+                            {(isAdmin || up.author.id === session?.user?.id) && (
+                              <button
+                                onClick={() => startEditUpdate(up)}
+                                className="w-7 h-7 rounded-lg inline-flex items-center justify-center text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors border border-sky-200/80 cursor-pointer shadow-2xs"
+                                title="Edit progress"
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                            )}
+
+                            {isAdmin && (
+                              <button
+                                onClick={() => {
+                                  setIssueModalUpdate(up)
+                                  setIssueTitle(`Issue: ${up.title}`)
+                                  setIssueDescription('')
+                                  setIssueImages([])
+                                }}
+                                className="h-7 px-2 rounded-lg inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200/80 cursor-pointer shadow-2xs"
+                                title="Lapor Issue"
+                              >
+                                <Bug size={12} />
+                                <span className="hidden sm:inline text-[11px]">Issue</span>
+                              </button>
+                            )}
+
+                            {(isAdmin || up.author.id === session?.user?.id) && (
+                              <button
+                                onClick={() => handleDeleteUpdate(up.id)}
+                                className="w-7 h-7 rounded-lg inline-flex items-center justify-center text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors border border-rose-200/80 cursor-pointer shadow-2xs"
+                                title="Hapus progress"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Row 2: Metadata Badges (Author, Status, Date, Assignee) */}
+                        <div className="flex items-center flex-wrap gap-2 text-xs">
+                          {/* Author badge */}
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-md">
                             <span>oleh</span>
-                            <span className="text-zinc-900 truncate max-w-[120px]">{up.author.name}</span>
+                            <span className="font-semibold text-zinc-900 truncate max-w-[140px]">{up.author.name}</span>
                           </span>
+
+                          {/* Status Badge */}
                           {up.status && (
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 uppercase tracking-wide ${
                               up.status === 'DONE'
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/90'
                                 : up.status === 'DOING'
@@ -1002,66 +1059,23 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                               {up.status}
                             </span>
                           )}
-                        </div>
 
-                        {/* Metadata row with readable contrast & chips */}
-                        <div className="flex items-center flex-wrap gap-2 text-xs text-zinc-600 font-medium">
-                          <span className="inline-flex items-center gap-1.5 bg-zinc-50 border border-zinc-200/70 px-2 py-0.5 rounded-md text-zinc-700 text-[11px]">
-                            <Clock size={11} className="text-zinc-500 shrink-0" />
+                          {/* Created at */}
+                          <span className="inline-flex items-center gap-1 text-zinc-500 text-[11px]">
+                            <Clock size={11} className="text-zinc-400 shrink-0" />
                             <span>{new Date(up.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                           </span>
 
+                          {/* Assigned to */}
                           {up.assignedTo && (
-                            <span className="inline-flex items-center gap-1.5 bg-blue-50/70 border border-blue-200/60 px-2 py-0.5 rounded-md text-blue-900 text-[11px]">
-                              <UserCheck size={12} className="text-[#0071E3] shrink-0" />
-                              <span className="text-blue-700">Ditugaskan ke:</span>
-                              <strong className="text-blue-900 font-semibold">{up.assignedTo.name}</strong>
+                            <span className="inline-flex items-center gap-1 text-[11px] text-blue-800 bg-blue-50/90 border border-blue-200/70 px-2 py-0.5 rounded-md">
+                              <UserCheck size={11} className="text-[#0071E3] shrink-0" />
+                              <span className="text-blue-600">Ditugaskan:</span>
+                              <span className="font-semibold">{up.assignedTo.name}</span>
                             </span>
                           )}
                         </div>
                       </div>
-                    </div>
-
-                    {/* Action Bar: Absolute top-right, no extra vertical break/space */}
-                    <div
-                      onClick={e => e.stopPropagation()}
-                      className="absolute top-0 right-0 flex items-center gap-1 shrink-0"
-                    >
-                      {(isAdmin || up.author.id === session?.user?.id) && (
-                        <button
-                          onClick={() => startEditUpdate(up)}
-                          className="inline-flex items-center justify-center p-1.5 rounded-lg text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors border border-sky-200/70 cursor-pointer shadow-2xs"
-                          title="Edit progress ini"
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                      )}
-
-                      {/* Lapor Issue — hanya PM/Admin */}
-                      {isAdmin && (
-                        <button
-                          onClick={() => {
-                            setIssueModalUpdate(up)
-                            setIssueTitle(`Issue: ${up.title}`)
-                            setIssueDescription('')
-                            setIssueImages([])
-                          }}
-                          className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200/80 cursor-pointer shrink-0 shadow-2xs"
-                        >
-                          <Bug size={12} />
-                          <span className="hidden sm:inline text-[11px]">Issue</span>
-                        </button>
-                      )}
-
-                      {(isAdmin || up.author.id === session?.user?.id) && (
-                        <button
-                          onClick={() => handleDeleteUpdate(up.id)}
-                          className="inline-flex items-center justify-center p-1.5 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors border border-rose-200/70 cursor-pointer shadow-2xs"
-                          title="Hapus progress ini"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      )}
                     </div>
                   </div>
 
