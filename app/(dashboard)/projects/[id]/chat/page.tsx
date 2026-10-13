@@ -5,6 +5,7 @@ import { Send, ArrowLeft, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { FileUpload } from "@/components/file-upload";
 import { getSocket } from "@/lib/socket-client";
+import { useImageLightbox } from "@/components/image-lightbox";
 
 interface Message {
   id: string;
@@ -56,6 +57,7 @@ export default function ChatPage({
 }) {
   const { id } = use(params);
   const { data: session } = useSession();
+  const { openImage } = useImageLightbox();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -256,14 +258,18 @@ export default function ChatPage({
                             url.startsWith("/uploads/");
                           if (isImg) {
                             return (
-                              <a
+                              <button
                                 key={i}
-                                href={url}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                                type="button"
+                                onClick={() => openImage(url)}
                                 style={{
                                   display: "block",
                                   marginTop: "0.25rem",
+                                  background: "transparent",
+                                  border: "none",
+                                  padding: 0,
+                                  cursor: "pointer",
+                                  textAlign: "left",
                                 }}
                               >
                                 <img
@@ -276,7 +282,7 @@ export default function ChatPage({
                                     display: "block",
                                   }}
                                 />
-                              </a>
+                              </button>
                             );
                           }
                           return (

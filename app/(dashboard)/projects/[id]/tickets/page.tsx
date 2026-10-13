@@ -3,6 +3,7 @@ import { useState, useEffect, use, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { Plus, X, ArrowLeft, Ticket, Trash2, RotateCcw, FileText, Paperclip, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
+import { useImageLightbox } from '@/components/image-lightbox'
 
 interface TicketItem {
   id: string
@@ -38,6 +39,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 export default function TicketsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const { data: session } = useSession()
+  const { openImage } = useImageLightbox()
   const [tickets, setTickets] = useState<TicketItem[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
@@ -352,6 +354,21 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                   <div className="flex gap-2 flex-wrap" style={{ marginTop: '0.75rem' }}>
                     {(ticket.attachments as string[]).map((url, i) => {
                       const isImg = /\.(jpg|jpeg|png|webp|gif|svg)($|\?)/i.test(url)
+                      if (isImg) {
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => openImage(url)}
+                            className="inline-flex items-center gap-1.5 p-1.5 rounded-lg border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-xs text-zinc-700 transition-colors cursor-pointer text-left"
+                          >
+                            <img src={url} alt={`lampiran ${i + 1}`} className="w-10 h-10 object-cover rounded-md border border-black/5" />
+                            <span className="font-medium max-w-28 truncate text-[11px]">
+                              {url.split('/').pop() || `Lampiran ${i + 1}`}
+                            </span>
+                          </button>
+                        )
+                      }
                       return (
                         <a
                           key={i}
@@ -360,14 +377,10 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 p-1.5 rounded-lg border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-xs text-zinc-700 transition-colors"
                         >
-                          {isImg ? (
-                            <img src={url} alt={`lampiran ${i + 1}`} className="w-10 h-10 object-cover rounded-md border border-black/5" />
-                          ) : (
-                            <div className="w-10 h-10 rounded-md bg-white border border-zinc-200 flex items-center justify-center text-blue-600">
-                              <FileText size={18} />
-                            </div>
-                          )}
-                          <span className="font-medium max-w-[120px] truncate text-[11px]">
+                          <div className="w-10 h-10 rounded-md bg-white border border-zinc-200 flex items-center justify-center text-blue-600">
+                            <FileText size={18} />
+                          </div>
+                          <span className="font-medium max-w-28 truncate text-[11px]">
                             {url.split('/').pop() || `Lampiran ${i + 1}`}
                           </span>
                         </a>

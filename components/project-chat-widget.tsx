@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { Send, X, MessageSquare, Image as ImageIcon } from 'lucide-react'
 import { getSocket } from '@/lib/socket-client'
+import { useImageLightbox } from './image-lightbox'
 
 interface Message {
   id: string
@@ -28,6 +29,7 @@ function formatDate(date: string) {
 
 export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: string; isOpen: boolean; onClose: () => void }) {
   const { data: session } = useSession()
+  const { openImage } = useImageLightbox()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(true)
@@ -162,7 +164,7 @@ export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: s
   let lastDate = ''
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col w-[360px] h-[550px] bg-[#202524] rounded-2xl shadow-2xl border border-[#2c3332] overflow-hidden animate-in slide-in-from-bottom-5">
+    <div className="fixed bottom-3 right-3 sm:bottom-6 sm:right-6 z-50 flex flex-col w-[calc(100vw-1.5rem)] sm:w-[380px] max-w-[400px] h-[min(560px,calc(100vh-5rem))] bg-[#202524] rounded-2xl shadow-2xl border border-[#2c3332] overflow-hidden animate-in slide-in-from-bottom-5">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-[#202524] border-b border-[#2c3332] shadow-sm relative z-10">
         <div className="flex items-center gap-2.5">
@@ -235,35 +237,53 @@ export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: s
                             return (
                               <>
                                 {images.length === 1 && (
-                                  <a href={images[0]} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-xl">
+                                  <button
+                                    type="button"
+                                    onClick={() => openImage(images[0])}
+                                    className="block overflow-hidden rounded-xl border-none p-0 bg-transparent text-left cursor-pointer"
+                                  >
                                     <img
                                       src={images[0]}
                                       alt="attachment"
                                       className="max-w-[240px] max-h-[260px] w-full rounded-xl object-cover hover:opacity-95 transition-opacity"
                                     />
-                                  </a>
+                                  </button>
                                 )}
 
                                 {images.length === 2 && (
                                   <div className="grid grid-cols-2 gap-1 max-w-[260px] rounded-xl overflow-hidden">
                                     {images.map((url, i) => (
-                                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block aspect-square overflow-hidden">
+                                      <button
+                                        key={i}
+                                        type="button"
+                                        onClick={() => openImage(url)}
+                                        className="block aspect-square overflow-hidden border-none p-0 bg-transparent cursor-pointer"
+                                      >
                                         <img src={url} alt={`img-${i}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-200" />
-                                      </a>
+                                      </button>
                                     ))}
                                   </div>
                                 )}
 
                                 {images.length === 3 && (
                                   <div className="grid grid-cols-2 gap-1 max-w-[260px] rounded-xl overflow-hidden">
-                                    <a href={images[0]} target="_blank" rel="noopener noreferrer" className="row-span-2 block overflow-hidden">
+                                    <button
+                                      type="button"
+                                      onClick={() => openImage(images[0])}
+                                      className="row-span-2 block overflow-hidden border-none p-0 bg-transparent cursor-pointer"
+                                    >
                                       <img src={images[0]} alt="img-0" className="w-full h-full object-cover min-h-[160px] hover:scale-105 transition-transform duration-200" />
-                                    </a>
+                                    </button>
                                     <div className="grid grid-rows-2 gap-1">
                                       {images.slice(1).map((url, i) => (
-                                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block aspect-square overflow-hidden">
+                                        <button
+                                          key={i}
+                                          type="button"
+                                          onClick={() => openImage(url)}
+                                          className="block aspect-square overflow-hidden border-none p-0 bg-transparent cursor-pointer"
+                                        >
                                           <img src={url} alt={`img-${i+1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-200" />
-                                        </a>
+                                        </button>
                                       ))}
                                     </div>
                                   </div>
@@ -272,14 +292,19 @@ export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: s
                                 {images.length >= 4 && (
                                   <div className="grid grid-cols-2 gap-1 max-w-[260px] rounded-xl overflow-hidden">
                                     {images.slice(0, 4).map((url, i) => (
-                                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative block aspect-square overflow-hidden group">
+                                      <button
+                                        key={i}
+                                        type="button"
+                                        onClick={() => openImage(url)}
+                                        className="relative block aspect-square overflow-hidden group border-none p-0 bg-transparent cursor-pointer"
+                                      >
                                         <img src={url} alt={`img-${i}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
                                         {i === 3 && images.length > 4 && (
                                           <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center text-white font-bold text-base">
                                             +{images.length - 4}
                                           </div>
                                         )}
-                                      </a>
+                                      </button>
                                     ))}
                                   </div>
                                 )}

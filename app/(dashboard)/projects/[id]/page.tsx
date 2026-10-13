@@ -33,6 +33,7 @@ import { StatusBadge } from '@/components/status-badge'
 import { findTechPreset, TechStackSelector } from '@/components/tech-stack-selector'
 import { getSocket } from '@/lib/socket-client'
 import { ProjectChatWidget } from '@/components/project-chat-widget'
+import { useImageLightbox } from '@/components/image-lightbox'
 
 interface Member {
   user: { id: string; name: string; email: string; role: string }
@@ -132,6 +133,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const { id } = use(params)
   const router = useRouter()
   const { data: session } = useSession()
+  const { openImage } = useImageLightbox()
   const [project, setProject] = useState<Project | null>(null)
   const [updates, setUpdates] = useState<ProjectUpdate[]>([])
   const [loading, setLoading] = useState(true)
@@ -1152,9 +1154,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             {up.attachments && up.attachments.length > 0 && (
                               <div className="flex gap-2 flex-wrap" style={{ marginTop: up.content ? '0.625rem' : 0 }}>
                                 {up.attachments.map((imgUrl, i) => (
-                                  <a key={i} href={imgUrl} target="_blank" rel="noreferrer" className="block rounded-xl overflow-hidden border border-black/5 hover:opacity-90 shadow-sm">
+                                  <button
+                                    key={i}
+                                    type="button"
+                                    onClick={() => openImage(imgUrl)}
+                                    className="block rounded-xl overflow-hidden border border-black/5 hover:opacity-90 shadow-sm cursor-pointer p-0 bg-transparent"
+                                  >
                                     <img src={imgUrl} alt="progress" className="w-24 sm:w-28 object-cover" style={{ height: '4.5rem' }} />
-                                  </a>
+                                  </button>
                                 ))}
                               </div>
                             )}
@@ -1188,9 +1195,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                               {log.attachments && log.attachments.length > 0 && (
                                 <div className="flex flex-wrap gap-2" style={{ marginTop: '0.5rem' }}>
                                   {log.attachments.map((imgUrl: string, i: number) => (
-                                    <a key={i} href={imgUrl} target="_blank" rel="noreferrer" className="block rounded-xl overflow-hidden border border-black/5 hover:opacity-90 shadow-sm">
+                                    <button
+                                      key={i}
+                                      type="button"
+                                      onClick={() => openImage(imgUrl)}
+                                      className="block rounded-xl overflow-hidden border border-black/5 hover:opacity-90 shadow-sm cursor-pointer p-0 bg-transparent"
+                                    >
                                       <img src={imgUrl} alt={`log ${i+1}`} className="w-28 h-20 sm:w-36 sm:h-24 object-cover" />
-                                    </a>
+                                    </button>
                                   ))}
                                 </div>
                               )}
