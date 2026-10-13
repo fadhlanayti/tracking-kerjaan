@@ -95,7 +95,7 @@ export default function ProjectContributorsPage() {
               <FolderKanban className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#ffff]">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
                 Project & Contributors
               </h1>
               <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">

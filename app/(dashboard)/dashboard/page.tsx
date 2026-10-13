@@ -45,7 +45,7 @@ export default function DashboardPage() {
   }, []);
 
   if (loading)
-    return <div className="loading-state !text-white">Loading...</div>;
+    return <div className="loading-state !text-black font-semibold">Loading...</div>;
 
   const activeProjects = projects.filter((p) => p.status === "ACTIVE").length;
   const totalIssues = projects.reduce((sum, p) => sum + p._count.issues, 0);
@@ -141,7 +141,7 @@ export default function DashboardPage() {
           {isAdmin && (
             <Link
               href="/projects/new"
-              className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 text-xs font-semibold rounded-lg text-white no-underline"
+              className="inline-flex items-center gap-1.5 !mt-3 px-3 py-1.5 text-xs font-semibold rounded-lg text-black no-underline"
               style={{ backgroundColor: "var(--accent)" }}
             >
               <Plus size={13} /> New Project

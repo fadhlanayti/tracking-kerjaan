@@ -38,13 +38,13 @@ export default function ProjectsPage() {
   }, []);
 
   if (loading)
-    return <div className="loading-state !text-white">Loading...</div>;
+    return <div className="loading-state !text-black font-semibold">Loading...</div>;
 
   return (
     <div style={{ width: "100%" }}>
       <div className="page-header" style={{ marginBottom: "1.5rem" }}>
         <div>
-          <h2 className="page-title !text-white">Projects</h2>
+          <h2 className="page-title">Projects</h2>
           <p
             style={{
               fontSize: "0.875rem",
@@ -56,7 +56,7 @@ export default function ProjectsPage() {
           </p>
         </div>
         {session?.user?.role === "ADMIN" && (
-          <Link href="/projects/new" className="btn-primary">
+          <Link href="/projects/new" className="btn-primary ">
             <Plus size={16} />
             New Project
           </Link>

@@ -224,7 +224,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
 
   const isCreatorOrPM = (t: TicketItem) => isPMorAdmin || t.createdBy.id === (session?.user as any)?.id
 
-  if (loading) return <div className="loading-state !text-white">Loading...</div>
+  if (loading) return <div className="loading-state !text-black font-semibold">Loading...</div>
 
   return (
     <div style={{ width: '100%', maxWidth: 1100, margin: '0 auto', paddingBottom: '3rem' }}>

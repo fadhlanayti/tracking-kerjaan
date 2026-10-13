@@ -129,7 +129,7 @@ option { background: var(--bg-card); color: var(--text-primary); }
 
 .loading-state {
   display: flex; align-items: center; justify-content: center;
-  min-height: 12rem; color: var(--text-muted); font-size: 0.875rem;
+  min-height: 12rem; color: #000000 !important; font-size: 0.875rem; font-weight: 600;
 }
 
 .empty-state {

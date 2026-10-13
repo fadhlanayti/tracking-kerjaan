@@ -128,7 +128,7 @@ export default function ChatPage({
   }
 
   if (loading)
-    return <div className="loading-state !text-white">Loading...</div>;
+    return <div className="loading-state !text-black font-semibold">Loading...</div>;
 
   // Group messages by date
   let lastDate = "";

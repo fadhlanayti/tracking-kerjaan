@@ -767,7 +767,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     }
   }
 
-  if (loading) return <div className="loading-state !text-white">Loading...</div>
+  if (loading) return <div className="loading-state !text-black font-semibold">Loading...</div>
   if (!project) return <div style={{ color: 'var(--red)' }}>Project not found</div>
 
   const memberIds = new Set(project.members.map(m => m.user.id))
