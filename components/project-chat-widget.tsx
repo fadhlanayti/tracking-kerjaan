@@ -200,15 +200,15 @@ export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: s
               const showSender = !isMe && (!prevMsg || prevMsg.sender.id !== msg.sender.id || showDate)
 
               return (
-                <div key={msg.id}>
+                <div key={msg.id} className="flex flex-col">
                   {showDate && (
-                    <div className="text-center my-3.5">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-blue-300 bg-blue-950/70 px-3.5 py-1 rounded-full shadow-xs border border-blue-500/30">
+                    <div className="flex items-center justify-center my-4 pt-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-blue-300 bg-blue-950/80 px-3.5 py-1 rounded-full shadow-sm border border-blue-500/30">
                         {msgDate}
                       </span>
                     </div>
                   )}
-                  <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} ${showSender ? 'mt-3' : 'mt-0.5'}`}>
+                  <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} ${showSender ? 'mt-2.5' : 'mt-1'}`}>
                     {showSender && (
                       <span className="text-[11px] font-semibold text-zinc-400 mb-1 ml-1">{msg.sender.name}</span>
                     )}

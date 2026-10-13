@@ -250,7 +250,7 @@ export default function UsersPage() {
             <UsersIcon size={20} />
           </div>
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-white">
+            <h2 className="text-xl font-bold tracking-tight">
               Users Management
             </h2>
             <p className="text-xs text-[var(--text-muted)] mt-0.5">

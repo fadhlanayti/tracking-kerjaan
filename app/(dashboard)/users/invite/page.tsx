@@ -41,7 +41,7 @@ export default function InviteUserPage() {
           <UserPlus size={20} />
         </div>
         <div>
-          <h2 className="text-lg font-bold !text-white">Invite User</h2>
+          <h2 className="text-lg font-bold">Invite User</h2>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Kirim undangan ke anggota tim baru</p>
         </div>
       </div>

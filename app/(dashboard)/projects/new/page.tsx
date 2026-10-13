@@ -74,7 +74,7 @@ export default function NewProjectPage() {
               <ArrowLeft size={13} /> Dashboard
             </Link>
           </div>
-          <h1 className='!text-white' style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FolderPlus size={24} />
             Buat Proyek Baru
           </h1>
