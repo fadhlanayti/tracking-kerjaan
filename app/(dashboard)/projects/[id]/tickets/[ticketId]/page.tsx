@@ -414,7 +414,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                       ? 'bg-zinc-900 text-white rounded-tr-md'
                       : 'bg-zinc-100 text-zinc-900 rounded-tl-md'
                   }`}>
-                    {c.content && <p className="m-0 whitespace-pre-wrap wrap-break-word"><RenderMention text={c.content} /></p>}
+                    {c.content && <p className="m-0 whitespace-pre-wrap wrap-break-word"><RenderMention text={c.content} members={members} /></p>}
 
                     {/* Image Grid */}
                     {images.length > 0 && (

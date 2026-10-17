@@ -1198,7 +1198,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                 )}
                               </div>
                               {/* Content */}
-                              <p className="text-sm text-zinc-800 leading-relaxed"><RenderMention text={log.content} /></p>
+                              <p className="text-sm text-zinc-800 leading-relaxed"><RenderMention text={log.content} members={project.members.map(m => ({ name: m.user.name }))} /></p>
                               {/* Log images */}
                               {log.attachments && log.attachments.length > 0 && (
                                 <div className="flex flex-wrap gap-2" style={{ marginTop: '0.5rem' }}>

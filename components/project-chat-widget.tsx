@@ -335,7 +335,7 @@ export function ProjectChatWidget({ projectId, isOpen, onClose, members = [] }: 
 
                       {/* Text content (jika ada) */}
                       {msg.content ? (
-                        <p className="whitespace-pre-wrap wrap-break-word"><RenderMention text={msg.content} /></p>
+                        <p className="whitespace-pre-wrap wrap-break-word"><RenderMention text={msg.content} members={members} /></p>
                       ) : null}
                     </div>
                     <span className="text-[10px] font-medium text-zinc-400 mt-1 mx-1">{formatTime(msg.createdAt)}</span>

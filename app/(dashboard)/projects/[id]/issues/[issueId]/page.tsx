@@ -402,7 +402,7 @@ export default function IssueDetailPage({ params }: { params: Promise<{ id: stri
               </div>
 
               <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.6, paddingLeft: '2.125rem', whiteSpace: 'pre-wrap' }}>
-                <RenderMention text={c.content} />
+                <RenderMention text={c.content} members={members.map(m => ({ name: m.user.name }))} />
               </div>
 
               {c.attachments.length > 0 && (

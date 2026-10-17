@@ -2,24 +2,43 @@
 
 /**
  * Render text dengan @mention di-bold.
- * Mention = @Nama yang di-insert via MentionTextarea (diakhiri spasi atau end)
+ * Deteksi berdasarkan nama member yang dikenal — bukan regex generic.
+ * Jika tidak ada members list, fallback ke pattern @Nama sampai spasi ganda/newline.
  */
-export function RenderMention({ text, className }: { text: string; className?: string }) {
-  // Match @mention: @ diikuti nama (huruf, angka, spasi) yang diinsert dari dropdown
-  // Nama pasti diakhiri spasi (karena insertMention menambah spasi setelah nama)
-  // Pattern: @, lalu 1-40 karakter word/spasi, stop di spasi-ganda, newline, punctuation, atau akhir string
-  const regex = /@([\w][\w ]{0,38}?)(?= |$|\n|[.,!?;:])/g
+export function RenderMention({
+  text,
+  className,
+  members = [],
+}: {
+  text: string
+  className?: string
+  members?: { name: string }[]
+}) {
+  if (!text) return <span className={className} />
+
+  // Bangun regex dari nama member — sort panjang terbesar dulu agar "Mba Anis Nalala" match sebelum "Mba"
+  const names = members
+    .map(m => m.name)
+    .filter(n => n.length > 0)
+    .sort((a, b) => b.length - a.length)
+
+  let regex: RegExp
+  if (names.length > 0) {
+    const escaped = names.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    regex = new RegExp(`@(${escaped.join('|')})`, 'gi')
+  } else {
+    // Fallback: @word
+    regex = /@([\w]+)/g
+  }
 
   const result: React.ReactNode[] = []
   let lastIndex = 0
   let match: RegExpExecArray | null
 
   while ((match = regex.exec(text)) !== null) {
-    // Teks sebelum mention
     if (match.index > lastIndex) {
       result.push(<span key={`t${lastIndex}`}>{text.slice(lastIndex, match.index)}</span>)
     }
-    // Mention itself
     result.push(
       <strong key={`m${match.index}`} className="font-semibold text-blue-600">
         @{match[1]}
@@ -28,7 +47,6 @@ export function RenderMention({ text, className }: { text: string; className?: s
     lastIndex = match.index + match[0].length
   }
 
-  // Sisa teks setelah mention terakhir
   if (lastIndex < text.length) {
     result.push(<span key={`t${lastIndex}`}>{text.slice(lastIndex)}</span>)
   }
