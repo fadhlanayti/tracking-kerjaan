@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications'
 import { formatNewComment } from '@/lib/whatsapp'
 import { notifyMentions } from '@/lib/mentions'
+import { emitSocket } from '@/lib/socket'
 
 export async function POST(
   req: NextRequest,
@@ -30,12 +31,11 @@ export async function POST(
   })
 
   await prisma.issueActivity.create({
-    data: {
-      issueId,
-      userId: session.user.id,
-      action: 'COMMENTED',
-    },
+    data: { issueId, userId: session.user.id, action: 'COMMENTED' },
   })
+
+  // Broadcast live ke semua member di project
+  emitSocket(`project:${id}`, 'issue:comment:new', comment)
 
   // Notify stakeholders
   const issue = await prisma.issue.findUnique({

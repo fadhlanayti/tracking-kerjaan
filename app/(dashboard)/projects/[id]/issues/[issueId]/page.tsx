@@ -1,11 +1,12 @@
 'use client'
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { ChevronRight, Paperclip, Send, Clock, MessageSquare, Check, Users } from 'lucide-react'
 import { StatusBadge, statusLabels } from '@/components/status-badge'
 import { FileUpload } from '@/components/file-upload'
 import { useImageLightbox } from '@/components/image-lightbox'
+import { getSocket } from '@/lib/socket-client'
 
 interface Comment {
   id: string
@@ -40,6 +41,7 @@ export default function IssueDetailPage({ params }: { params: Promise<{ id: stri
   const [commentAttachments, setCommentAttachments] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [members, setMembers] = useState<{ user: { id: string; name: string; role: string } }[]>([])
+  const myPendingIds = useRef<Set<string>>(new Set())
 
   function fetchIssue() {
     fetch(`/api/projects/${id}/issues/${issueId}`)
@@ -65,19 +67,68 @@ export default function IssueDetailPage({ params }: { params: Promise<{ id: stri
     fetchIssue()
   }
 
+  // Socket: live comment updates dari user lain
+  useEffect(() => {
+    const socket = getSocket()
+    socket.emit('join:project', { projectId: id })
+
+    const handleNewComment = (comment: Comment) => {
+      if (myPendingIds.current.has(comment.id)) {
+        myPendingIds.current.delete(comment.id)
+        return
+      }
+      setIssue(prev => {
+        if (!prev) return prev
+        if (prev.comments.some(c => c.id === comment.id)) return prev
+        return { ...prev, comments: [...prev.comments, comment] }
+      })
+    }
+
+    socket.on('issue:comment:new', handleNewComment)
+    return () => { socket.off('issue:comment:new', handleNewComment) }
+  }, [id])
+
   async function submitComment(e: React.FormEvent) {
     e.preventDefault()
-    if (!commentText.trim()) return
-    setSubmitting(true)
-    await fetch(`/api/projects/${id}/issues/${issueId}/comments`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: commentText, attachments: commentAttachments }),
-    })
+    const text = commentText.trim()
+    if (!text && commentAttachments.length === 0) return
+
+    // Optimistic bubble
+    const tempId = `temp-${Date.now()}`
+    const optimistic: Comment = {
+      id: tempId,
+      content: text,
+      attachments: commentAttachments,
+      author: {
+        id: (session?.user as any)?.id || '',
+        name: session?.user?.name || '',
+        avatar: (session?.user as any)?.avatar || null,
+      },
+      createdAt: new Date().toISOString(),
+    }
+    setIssue(prev => prev ? { ...prev, comments: [...prev.comments, optimistic] } : prev)
     setCommentText('')
     setCommentAttachments([])
-    setSubmitting(false)
-    fetchIssue()
+
+    try {
+      const res = await fetch(`/api/projects/${id}/issues/${issueId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: text, attachments: commentAttachments }),
+      })
+      if (res.ok) {
+        const real = await res.json()
+        myPendingIds.current.add(real.id)
+        setIssue(prev => {
+          if (!prev) return prev
+          return { ...prev, comments: prev.comments.map(c => c.id === tempId ? real : c) }
+        })
+      } else {
+        setIssue(prev => prev ? { ...prev, comments: prev.comments.filter(c => c.id !== tempId) } : prev)
+      }
+    } catch {
+      setIssue(prev => prev ? { ...prev, comments: prev.comments.filter(c => c.id !== tempId) } : prev)
+    }
   }
 
   if (loading) {
