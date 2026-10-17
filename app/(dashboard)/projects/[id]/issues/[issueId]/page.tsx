@@ -462,7 +462,8 @@ export default function IssueDetailPage({ params }: { params: Promise<{ id: stri
           <textarea
             value={commentText}
             onChange={e => setCommentText(e.target.value)}
-            placeholder="Write a comment..."
+            onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submitComment(e as any) } }}
+            placeholder="Write a comment... (Ctrl+Enter to send)"
             rows={3}
             className="input resize-none"
             style={{ fontSize: '0.8125rem', padding: '0.75rem', width: '100%' }}

@@ -373,8 +373,8 @@ export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: s
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e as any) } }}
-            placeholder="Tulis pesan..."
+            onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sendMessage(e as any) } }}
+            placeholder="Tulis pesan... (Ctrl+Enter kirim)"
             className="flex-1 bg-transparent text-sm text-white placeholder-zinc-500 outline-none border-none"
           />
           <button

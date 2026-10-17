@@ -233,7 +233,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
       handleSend(e as any)
     }
@@ -511,7 +511,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                 value={msgText}
                 onChange={e => { setMsgText(e.target.value); autoGrow() }}
                 onKeyDown={handleKeyDown}
-                placeholder="Tulis update atau lampirkan file..."
+                placeholder="Tulis update... (Ctrl+Enter untuk kirim)"
                 className="w-full text-sm p-2.5 sm:p-3 rounded-xl border border-zinc-200 outline-none focus:border-zinc-400 resize-none font-sans leading-snug"
                 style={{ maxHeight: 120 }}
               />
