@@ -48,9 +48,9 @@ export function MentionTextarea({
     setQuery(q)
     setMentionStart(atIdx)
     const lower = q.toLowerCase()
-    const matches = members.filter(m => m.name.toLowerCase().includes(lower))
+    const matches = q.length === 0 ? members : members.filter(m => m.name.toLowerCase().includes(lower))
     setFiltered(matches.slice(0, 6))
-    setShowDropdown(matches.length > 0 && q.length > 0)
+    setShowDropdown(matches.length > 0)
     setSelectedIdx(0)
   }, [members])
 
