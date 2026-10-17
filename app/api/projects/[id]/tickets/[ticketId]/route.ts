@@ -53,8 +53,19 @@ export async function PATCH(
   const data: any = {}
 
   if (body.status !== undefined) {
-    if (!isPMorAdmin) return NextResponse.json({ error: 'Hanya PM atau Admin yang bisa mengubah status ticket' }, { status: 403 })
-    data.status = body.status
+    // PM/Admin: bisa set APPROVED→OPEN, REVISION, REJECTED
+    // Developer/Client: hanya bisa set DONE (tutup tiket yang sudah OPEN/IN_PROGRESS)
+    const workingStatuses = ['OPEN', 'IN_PROGRESS', 'DONE']
+    const pmStatuses = ['APPROVED', 'REVISION', 'REJECTED', 'PENDING']
+    if (pmStatuses.includes(body.status)) {
+      if (!isPMorAdmin) return NextResponse.json({ error: 'Hanya PM atau Admin yang bisa mengubah status review ticket' }, { status: 403 })
+      // Auto OPEN saat PM approve
+      if (body.status === 'APPROVED') data.status = 'OPEN'
+      else data.status = body.status
+    } else if (workingStatuses.includes(body.status)) {
+      // Member project bisa update progress / close
+      data.status = body.status
+    }
   }
   if (body.pmNotes !== undefined) {
     if (!isPMorAdmin) return NextResponse.json({ error: 'Hanya PM atau Admin yang bisa memberi catatan' }, { status: 403 })
@@ -118,8 +129,11 @@ export async function PATCH(
   if (body.status && body.status !== existing.status && existing.createdById !== user.id) {
     const statusLabel: Record<string, string> = {
       APPROVED: '✅ Disetujui',
+      OPEN: '🟢 Open — Siap Dikerjakan',
       REJECTED: '❌ Ditolak',
       REVISION: '✏️ Perlu Revisi',
+      IN_PROGRESS: '🔄 Sedang Dikerjakan',
+      DONE: '🎉 Selesai',
       PENDING: 'Pending',
     }
     await createNotification({

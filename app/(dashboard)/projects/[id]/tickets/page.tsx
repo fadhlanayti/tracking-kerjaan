@@ -25,7 +25,7 @@ interface TicketItem {
   title: string
   description: string | null
   type: 'DEPLOY' | 'FEATURE' | 'BUGFIX' | 'OTHER' | string
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVISION'
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVISION' | 'OPEN' | 'IN_PROGRESS' | 'DONE'
   pmNotes: string | null
   attachments: string[]
   createdAt: string
@@ -46,10 +46,13 @@ const TYPE_CONFIG = {
 }
 
 const STATUS_CONFIG = {
-  PENDING:  { label: 'Menunggu Review PM', dot: 'bg-amber-500',   badge: 'bg-amber-50/80 text-amber-800 border-amber-200/70' },
-  APPROVED: { label: 'Disetujui PM',       dot: 'bg-emerald-500', badge: 'bg-emerald-50/80 text-emerald-800 border-emerald-200/70' },
-  REVISION: { label: 'Perlu Revisi Klien', dot: 'bg-sky-500',     badge: 'bg-sky-50/80 text-sky-800 border-sky-200/70' },
-  REJECTED: { label: 'Ditolak',            dot: 'bg-zinc-400',    badge: 'bg-zinc-100 text-zinc-600 border-zinc-200' },
+  PENDING:     { label: 'Menunggu Review PM',  dot: 'bg-amber-400',   badge: 'bg-amber-50/80 text-amber-800 border-amber-200/70' },
+  REVISION:    { label: 'Perlu Revisi',        dot: 'bg-sky-500',     badge: 'bg-sky-50/80 text-sky-800 border-sky-200/70' },
+  REJECTED:    { label: 'Ditolak',             dot: 'bg-zinc-400',    badge: 'bg-zinc-100 text-zinc-600 border-zinc-200' },
+  OPEN:        { label: 'Open — Siap Kerjakan',dot: 'bg-violet-500',  badge: 'bg-violet-50/80 text-violet-800 border-violet-200/70' },
+  IN_PROGRESS: { label: 'Sedang Dikerjakan',   dot: 'bg-blue-500',    badge: 'bg-blue-50/80 text-blue-800 border-blue-200/70' },
+  DONE:        { label: 'Selesai',             dot: 'bg-emerald-500', badge: 'bg-emerald-50/80 text-emerald-800 border-emerald-200/70' },
+  APPROVED:    { label: 'Disetujui',           dot: 'bg-emerald-500', badge: 'bg-emerald-50/80 text-emerald-800 border-emerald-200/70' },
 }
 
 export default function TicketsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -112,9 +115,9 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) {
-          // Jika developer, pastikan hanya tampil yang APPROVED
+          // Developer: hanya tiket yang sudah diassign ke mereka (OPEN/IN_PROGRESS/DONE)
           if (isDeveloper) {
-            setTickets(data.filter(t => t.status === 'APPROVED'))
+            setTickets(data.filter(t => ['OPEN', 'IN_PROGRESS', 'DONE'].includes(t.status)))
           } else {
             setTickets(data)
           }
@@ -129,10 +132,10 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
     const socket = getSocket()
     socket.emit('join:project', { projectId: id })
 
-    const handleTicketNew = (newTicket: TicketItem) => {
-      // Developer tidak menerima notifikasi/tiket jika belum APPROVED
-      if (isDeveloper && newTicket.status !== 'APPROVED') return
+    const DEV_VISIBLE = ['OPEN', 'IN_PROGRESS', 'DONE']
 
+    const handleTicketNew = (newTicket: TicketItem) => {
+      if (isDeveloper && !DEV_VISIBLE.includes(newTicket.status)) return
       setTickets(prev => {
         if (prev.some(t => t.id === newTicket.id)) return prev
         return [newTicket, ...prev]
@@ -141,12 +144,11 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
 
     const handleTicketUpdated = (updatedTicket: TicketItem) => {
       setTickets(prev => {
-        if (isDeveloper && updatedTicket.status !== 'APPROVED') {
-          // Jika bukan APPROVED lagi, sembunyikan dari developer
+        if (isDeveloper && !DEV_VISIBLE.includes(updatedTicket.status)) {
           return prev.filter(t => t.id !== updatedTicket.id)
         }
         const exists = prev.some(t => t.id === updatedTicket.id)
-        if (!exists && (!isDeveloper || updatedTicket.status === 'APPROVED')) {
+        if (!exists && (!isDeveloper || DEV_VISIBLE.includes(updatedTicket.status))) {
           return [updatedTicket, ...prev]
         }
         return prev.map(t => t.id === updatedTicket.id ? updatedTicket : t)
@@ -399,16 +401,25 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
       )}
 
       {/* Filters Toolbar */}
-      {!isDeveloper && (
-        <div className="card p-2 sm:p-2.5 mb-8 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {[
-              { key: '', label: 'Semua', count: tickets.length },
-              { key: 'PENDING', label: 'Menunggu Review', count: tickets.filter(t => t.status === 'PENDING').length },
-              { key: 'REVISION', label: 'Perlu Revisi', count: tickets.filter(t => t.status === 'REVISION').length },
-              { key: 'APPROVED', label: 'Disetujui', count: tickets.filter(t => t.status === 'APPROVED').length },
-              { key: 'REJECTED', label: 'Ditolak', count: tickets.filter(t => t.status === 'REJECTED').length },
-            ].map(tab => {
+      <div className="card p-2 sm:p-2.5 mb-8 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {(isDeveloper
+            ? [
+                { key: '', label: 'Semua', count: tickets.length },
+                { key: 'OPEN', label: 'Open', count: tickets.filter(t => t.status === 'OPEN').length },
+                { key: 'IN_PROGRESS', label: 'Dikerjakan', count: tickets.filter(t => t.status === 'IN_PROGRESS').length },
+                { key: 'DONE', label: 'Selesai', count: tickets.filter(t => t.status === 'DONE').length },
+              ]
+            : [
+                { key: '', label: 'Semua', count: tickets.length },
+                { key: 'PENDING', label: 'Menunggu Review', count: tickets.filter(t => t.status === 'PENDING').length },
+                { key: 'REVISION', label: 'Revisi', count: tickets.filter(t => t.status === 'REVISION').length },
+                { key: 'OPEN', label: 'Open', count: tickets.filter(t => t.status === 'OPEN').length },
+                { key: 'IN_PROGRESS', label: 'Dikerjakan', count: tickets.filter(t => t.status === 'IN_PROGRESS').length },
+                { key: 'DONE', label: 'Selesai', count: tickets.filter(t => t.status === 'DONE').length },
+                { key: 'REJECTED', label: 'Ditolak', count: tickets.filter(t => t.status === 'REJECTED').length },
+              ]
+          ).map(tab => {
               const active = filter === tab.key
               return (
                 <button
@@ -438,7 +449,6 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
             {tickets.length} Tiket Tercatat
           </div>
         </div>
-      )}
 
       {/* Tickets List */}
       {tickets.length === 0 ? (
@@ -474,161 +484,123 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
             return (
               <div
                 key={ticket.id}
-                className="card p-4 sm:p-5 flex flex-col gap-3 transition-all hover:border-zinc-300"
+                className="card p-4 sm:p-5 flex flex-col gap-3.5 transition-all hover:border-zinc-300"
               >
-                {/* Top Row: Meta Badges & Actions */}
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {/* Code Tag */}
-                    <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 border border-zinc-200/80">
-                      #{shortCode}
-                    </span>
-
-                    {/* Type Tag */}
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-md bg-zinc-50 border border-zinc-200/70 text-zinc-700">
-                      <TypeIcon size={12} className={typeMeta.color} />
-                      <span>{typeMeta.label}</span>
-                    </span>
-
-                    {/* Status Badge */}
-                    <span
-                      className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full border ${statusMeta.badge}`}
-                    >
-                      <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />
-                      <span>{statusMeta.label}</span>
-                    </span>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-1.5 ml-auto">
-                    {/* Creator Edit if Revision or Pending */}
-                    {isCreator && (ticket.status === 'REVISION' || ticket.status === 'PENDING') && (
-                      <button
-                        onClick={() => openEditModal(ticket)}
-                        className={`text-xs px-2.5 py-1 rounded-lg inline-flex items-center gap-1 cursor-pointer font-medium ${
-                          isRevision
-                            ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs'
-                            : 'btn-secondary'
-                        }`}
-                      >
-                        <Edit3 size={12} />
-                        <span>{isRevision ? 'Perbaiki Permintaan' : 'Edit'}</span>
-                      </button>
-                    )}
-
-                    {/* PM Review Button */}
-                    {isPMorAdmin && (
-                      <button
-                        onClick={() => openReviewModal(ticket)}
-                        className="btn-secondary text-xs px-2.5 py-1 rounded-lg inline-flex items-center gap-1 cursor-pointer font-medium hover:bg-zinc-200"
-                        title="Tinjau dan buat keputusan PM"
-                      >
-                        <ShieldCheck size={13} className="text-indigo-600" />
-                        <span>Review PM</span>
-                      </button>
-                    )}
-
-                    {/* Link ke detail (semua role, tapi dev hanya APPROVED) */}
-                    {ticket.status === 'APPROVED' && (
-                      <Link
-                        href={`/projects/${id}/tickets/${ticket.id}`}
-                        className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/70 transition-colors no-underline"
-                      >
-                        <MessageSquare size={12} />
-                        <span>Update</span>
-                      </Link>
-                    )}
-
-                    {/* Delete */}
-                    {canDelete(ticket) && (
-                      <button
-                        onClick={() => deleteTicket(ticket.id)}
-                        className="p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border-none bg-transparent cursor-pointer"
-                        title="Hapus tiket"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                {/* Row 1: Title + Status */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm sm:text-base font-semibold text-zinc-900 m-0 leading-snug">
+                      {ticket.title}
+                    </h3>
+                    {ticket.description && (
+                      <p className="text-xs text-zinc-500 leading-relaxed mt-1 mb-0 line-clamp-2">
+                        {ticket.description}
+                      </p>
                     )}
                   </div>
+                  <span
+                    className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border shrink-0 ${statusMeta.badge}`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />
+                    <span>{statusMeta.label}</span>
+                  </span>
                 </div>
 
-                {/* Content */}
-                <div>
-                  <h3 className="text-sm sm:text-base font-semibold text-zinc-900 m-0 leading-snug">
-                    {ticket.title}
-                  </h3>
-                  {ticket.description && (
-                    <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed mt-1 mb-0 whitespace-pre-wrap wrap-break-word">
-                      {ticket.description}
-                    </p>
-                  )}
-                </div>
-
-                {/* Attachments */}
-                {Array.isArray(ticket.attachments) && ticket.attachments.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {(ticket.attachments as string[]).map((url, i) => {
-                      const isImg = /\.(jpg|jpeg|png|webp|gif|svg)($|\?)/i.test(url)
-                      if (isImg) {
-                        return (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => openImage(url)}
-                            className="inline-flex items-center gap-1.5 p-1 rounded-lg border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 transition-colors cursor-pointer text-zinc-600 text-xs"
-                          >
-                            <img src={url} alt={`attachment ${i+1}`} className="w-6 h-6 object-cover rounded" />
-                            <span className="max-w-28 truncate">{url.split('/').pop() || `Lampiran ${i + 1}`}</span>
-                          </button>
-                        )
-                      }
-                      return (
-                        <a
-                          key={i}
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 transition-colors text-zinc-600 text-xs no-underline"
-                        >
-                          <FileText size={13} className="text-blue-600" />
-                          <span className="max-w-28 truncate">{url.split('/').pop() || `Lampiran ${i + 1}`}</span>
-                        </a>
-                      )
+                {/* Row 2: Meta Tags */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono text-[11px] font-semibold px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500 border border-zinc-200/80">
+                    #{shortCode}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500">
+                    <TypeIcon size={11} className={typeMeta.color} />
+                    <span>{typeMeta.label}</span>
+                  </span>
+                  <span className="text-[11px] text-zinc-400">·</span>
+                  <span className="text-[11px] text-zinc-400">
+                    {ticket.createdBy.name}
+                  </span>
+                  <span className="text-[11px] text-zinc-400">·</span>
+                  <span className="text-[11px] text-zinc-400">
+                    {new Date(ticket.createdAt).toLocaleDateString('id-ID', {
+                      day: 'numeric', month: 'short',
                     })}
-                  </div>
-                )}
+                  </span>
+                </div>
 
                 {/* PM Notes Callout */}
                 {ticket.pmNotes && (
-                  <div className="p-3 rounded-lg bg-amber-50/70 border-l-2 border-amber-500 text-xs">
-                    <div className="flex items-center gap-1.5 font-semibold text-amber-900 mb-0.5">
-                      <AlertTriangle size={13} className="text-amber-600 shrink-0" />
-                      <span>Catatan Project Manager:</span>
-                    </div>
-                    <p className="text-amber-950/80 m-0 leading-relaxed whitespace-pre-wrap">
-                      {ticket.pmNotes}
-                    </p>
+                  <div className="p-2.5 rounded-lg bg-amber-50/70 border-l-2 border-amber-400 text-xs">
+                    <span className="font-semibold text-amber-900">Catatan PM: </span>
+                    <span className="text-amber-950/80">{ticket.pmNotes}</span>
                   </div>
                 )}
 
-                {/* Footer Metadata */}
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-100 text-[11px] text-zinc-400">
-                  <div className="flex items-center gap-1.5">
-                    <span>Diajukan oleh</span>
-                    <strong className="text-zinc-700 font-semibold">{ticket.createdBy.name}</strong>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-100 text-zinc-500 font-medium">
-                      {ticket.createdBy.role}
-                    </span>
-                  </div>
-                  <span>
-                    {new Date(ticket.createdAt).toLocaleDateString('id-ID', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </span>
+                {/* Row 3: Actions */}
+                <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-zinc-100">
+                  {/* Link ke detail chat */}
+                  {['OPEN', 'IN_PROGRESS', 'DONE'].includes(ticket.status) && (
+                    <Link
+                      href={`/projects/${id}/tickets/${ticket.id}`}
+                      className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/70 transition-colors no-underline"
+                    >
+                      <MessageSquare size={12} />
+                      <span>Update & Diskusi</span>
+                    </Link>
+                  )}
+
+                  {/* Tombol Selesai — semua member bisa klik jika OPEN atau IN_PROGRESS */}
+                  {(ticket.status === 'OPEN' || ticket.status === 'IN_PROGRESS') && (
+                    <button
+                      onClick={async () => {
+                        setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: 'DONE' as const } : t))
+                        await fetch(`/api/projects/${id}/tickets/${ticket.id}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ status: 'DONE' }),
+                        })
+                      }}
+                      className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/70 transition-colors cursor-pointer"
+                    >
+                      ✓ Tandai Selesai
+                    </button>
+                  )}
+
+                  {/* Creator Edit if Revision or Pending */}
+                  {isCreator && (ticket.status === 'REVISION' || ticket.status === 'PENDING') && (
+                    <button
+                      onClick={() => openEditModal(ticket)}
+                      className={`text-xs px-2.5 py-1 rounded-lg inline-flex items-center gap-1 cursor-pointer font-medium ${
+                        isRevision
+                          ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs'
+                          : 'btn-secondary'
+                      }`}
+                    >
+                      <Edit3 size={12} />
+                      <span>{isRevision ? 'Perbaiki' : 'Edit'}</span>
+                    </button>
+                  )}
+
+                  {/* PM Review Button */}
+                  {isPMorAdmin && (ticket.status === 'PENDING' || ticket.status === 'REVISION') && (
+                    <button
+                      onClick={() => openReviewModal(ticket)}
+                      className="btn-secondary text-xs px-2.5 py-1 rounded-lg inline-flex items-center gap-1 cursor-pointer font-medium hover:bg-zinc-200"
+                    >
+                      <ShieldCheck size={13} className="text-indigo-600" />
+                      <span>Review PM</span>
+                    </button>
+                  )}
+
+                  {/* Delete — paling kanan */}
+                  {canDelete(ticket) && (
+                    <button
+                      onClick={() => deleteTicket(ticket.id)}
+                      className="ml-auto p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border-none bg-transparent cursor-pointer"
+                      title="Hapus tiket"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
               </div>
             )

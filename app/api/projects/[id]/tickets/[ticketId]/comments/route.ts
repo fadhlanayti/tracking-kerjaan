@@ -49,6 +49,19 @@ export async function POST(
     },
   })
 
+  // Auto IN_PROGRESS: jika tiket masih OPEN dan ada comment pertama dari member
+  const ticket = await prisma.ticket.findUnique({
+    where: { id: ticketId },
+    select: { status: true },
+  })
+  if (ticket?.status === 'OPEN') {
+    await prisma.ticket.update({
+      where: { id: ticketId },
+      data: { status: 'IN_PROGRESS' },
+    })
+    emitSocket(`project:${id}`, 'ticket:updated', { id: ticketId, status: 'IN_PROGRESS' })
+  }
+
   emitSocket(`project:${id}`, 'ticket-comment:new', { ticketId, comment })
 
   return NextResponse.json(comment, { status: 201 })

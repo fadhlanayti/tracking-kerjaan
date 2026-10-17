@@ -24,9 +24,13 @@ export async function GET(
 
   const where: any = { projectId: id }
 
-  // Developer hanya melihat tiket yang sudah APPROVED oleh PM
+  // Developer hanya melihat tiket yang sudah masuk fase kerja
   if (isDeveloper && !isPMorAdmin) {
-    where.status = 'APPROVED'
+    if (status && ['OPEN', 'IN_PROGRESS', 'DONE'].includes(status)) {
+      where.status = status
+    } else {
+      where.status = { in: ['OPEN', 'IN_PROGRESS', 'DONE'] }
+    }
   } else if (status) {
     where.status = status
   }

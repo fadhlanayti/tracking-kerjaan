@@ -222,6 +222,9 @@ enum TicketStatus {
   APPROVED
   REJECTED
   REVISION
+  OPEN
+  IN_PROGRESS
+  DONE
 }
 
 enum TicketType {
