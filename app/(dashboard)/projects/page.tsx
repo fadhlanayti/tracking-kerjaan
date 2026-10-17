@@ -48,7 +48,7 @@ export default function ProjectsPage() {
           <p
             style={{
               fontSize: "0.875rem",
-              color: "var(--text-muted)",
+              color: "rgba(255,255,255,0.7)",
               marginTop: "0.25rem",
             }}
           >

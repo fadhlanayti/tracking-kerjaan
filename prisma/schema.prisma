@@ -79,6 +79,7 @@ model User {
   messages         ChatMessage[]
   notifications    Notification[]
   tickets          Ticket[]         @relation("TicketCreator")
+  ticketComments   TicketComment[]
 }
 
 model Project {
@@ -243,8 +244,22 @@ model Ticket {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdBy User    @relation("TicketCreator", fields: [createdById], references: [id])
+  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User            @relation("TicketCreator", fields: [createdById], references: [id])
+  comments  TicketComment[]
+}
+
+model TicketComment {
+  id          String   @id @default(cuid())
+  ticketId    String
+  authorId    String
+  content     String   @db.Text
+  attachments Json     @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id])
 }
 
 model ProjectUpdate {

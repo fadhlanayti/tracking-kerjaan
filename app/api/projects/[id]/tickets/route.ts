@@ -16,8 +16,20 @@ export async function GET(
   const url = new URL(req.url)
   const status = url.searchParams.get('status')
 
+  const member = await prisma.projectMember.findFirst({
+    where: { projectId: id, userId: session.user.id },
+  })
+  const isPMorAdmin = session.user.role === 'ADMIN' || member?.role === 'PM'
+  const isDeveloper = session.user.role === 'DEVELOPER' || member?.role === 'DEVELOPER'
+
   const where: any = { projectId: id }
-  if (status) where.status = status
+
+  // Developer hanya melihat tiket yang sudah APPROVED oleh PM
+  if (isDeveloper && !isPMorAdmin) {
+    where.status = 'APPROVED'
+  } else if (status) {
+    where.status = status
+  }
 
   const tickets = await prisma.ticket.findMany({
     where,
@@ -44,12 +56,17 @@ export async function POST(
     return NextResponse.json({ error: 'Judul ticket wajib diisi' }, { status: 400 })
   }
 
-  // PM dan Admin tidak bisa buat ticket — hanya review
-  const isPM = session.user.role === 'ADMIN' || await prisma.projectMember.findFirst({
-    where: { projectId: id, userId: session.user.id, role: 'PM' },
+  // PM, Admin, dan Developer tidak membuat tiket request — hanya Klien
+  const member = await prisma.projectMember.findFirst({
+    where: { projectId: id, userId: session.user.id },
   })
-  if (isPM) {
-    return NextResponse.json({ error: 'PM tidak perlu membuat ticket, langsung approve/reject saja' }, { status: 403 })
+  const isPMorAdmin = session.user.role === 'ADMIN' || member?.role === 'PM'
+  if (isPMorAdmin) {
+    return NextResponse.json({ error: 'PM dan Admin hanya meninjau tiket, tidak membuat tiket request.' }, { status: 403 })
+  }
+  const isDev = session.user.role === 'DEVELOPER' || member?.role === 'DEVELOPER'
+  if (isDev) {
+    return NextResponse.json({ error: 'Developer dapat mencatat pekerjaan langsung di menu Issues.' }, { status: 403 })
   }
 
   const ticket = await prisma.ticket.create({

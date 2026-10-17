@@ -74,11 +74,11 @@ export default function NewProjectPage() {
               <ArrowLeft size={13} /> Dashboard
             </Link>
           </div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--accent)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FolderPlus size={24} />
             Buat Proyek Baru
           </h1>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0 }}>
+          <p style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.7)', marginTop: '0.25rem', margin: 0 }}>
             Lengkapi nama proyek, deskripsi, dan pilih anggota tim yang terlibat
           </p>
         </div>

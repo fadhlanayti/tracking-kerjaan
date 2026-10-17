@@ -42,61 +42,84 @@ export function ImageLightboxProvider({ children }: { children: React.ReactNode 
       {children}
       {activeImage && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-6 animate-in fade-in duration-150 select-none"
+          className="fixed inset-0 z-9999 flex flex-col bg-black/90 backdrop-blur-md animate-in fade-in duration-150 select-none"
           onClick={closeImage}
         >
-          {/* Top Actions */}
+          {/* Header Bar - terpisah dari area gambar */}
           <div
-            className="absolute top-4 right-4 z-10 flex items-center gap-2"
+            className="w-full h-14 flex items-center justify-between px-4 sm:px-6 shrink-0 z-50 bg-black/40"
             onClick={e => e.stopPropagation()}
           >
-            <button
-              type="button"
-              onClick={() => setScale(s => Math.min(s + 0.25, 3))}
-              className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all border border-white/10 cursor-pointer"
-              title="Zoom In"
-            >
-              <ZoomIn size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setScale(s => Math.max(s - 0.25, 0.75))}
-              className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all border border-white/10 cursor-pointer"
-              title="Zoom Out"
-            >
-              <ZoomOut size={16} />
-            </button>
-            <a
-              href={activeImage.url}
-              download
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all border border-white/10 cursor-pointer"
-              title="Buka / Download file asli"
-            >
-              <Download size={16} />
-            </a>
-            <button
-              type="button"
-              onClick={closeImage}
-              className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-all border border-white/20 cursor-pointer ml-1"
-              title="Tutup (Esc)"
-            >
-              <X size={18} />
-            </button>
+            <div className="text-white/70 text-xs sm:text-sm font-medium truncate max-w-[50vw]">
+              {activeImage.alt && activeImage.alt !== 'Preview' ? activeImage.alt : ''}
+            </div>
+
+            {/* Pill Toolbar Kontras Tinggi */}
+            <div className="flex items-center gap-1.5 bg-zinc-900/95 border border-zinc-700/80 px-2.5 py-1 rounded-full shadow-2xl">
+              <button
+                type="button"
+                onClick={() => setScale(s => Math.min(s + 0.25, 3))}
+                className="w-8 h-8 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer border-none bg-transparent"
+                title="Zoom In"
+              >
+                <ZoomIn size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setScale(s => Math.max(s - 0.25, 0.75))}
+                className="w-8 h-8 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer border-none bg-transparent"
+                title="Zoom Out"
+              >
+                <ZoomOut size={16} />
+              </button>
+              {scale !== 1 && (
+                <button
+                  type="button"
+                  onClick={() => setScale(1)}
+                  className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer border-none"
+                  title="Reset Zoom"
+                >
+                  {Math.round(scale * 100)}%
+                </button>
+              )}
+              <div className="w-px h-4 bg-zinc-700 mx-1" />
+              <a
+                href={activeImage.url}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-8 h-8 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                title="Download file asli"
+              >
+                <Download size={16} />
+              </a>
+              <button
+                type="button"
+                onClick={closeImage}
+                className="w-8 h-8 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center transition-colors cursor-pointer border-none ml-1 shadow-sm"
+                title="Tutup (Esc)"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
 
-          {/* Image Container */}
+          {/* Area Gambar - flex-1 min-h-0 mencegah gambar menimpa header */}
           <div
-            className="relative max-w-full max-h-full flex items-center justify-center overflow-hidden"
-            onClick={e => e.stopPropagation()}
+            className="flex-1 min-h-0 w-full flex items-center justify-center p-3 sm:p-6 overflow-hidden"
+            onClick={closeImage}
           >
-            <img
-              src={activeImage.url}
-              alt={activeImage.alt || 'Preview'}
-              style={{ transform: `scale(${scale})`, transition: 'transform 0.15s ease' }}
-              className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg shadow-2xl"
-            />
+            <div
+              className="relative max-w-full max-h-full flex items-center justify-center"
+              onClick={e => e.stopPropagation()}
+            >
+              <img
+                src={activeImage.url}
+                alt={activeImage.alt || 'Preview'}
+                style={{ transform: `scale(${scale})`, transition: 'transform 0.15s ease' }}
+                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+              />
+            </div>
           </div>
         </div>
       )}

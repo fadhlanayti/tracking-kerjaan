@@ -15,7 +15,13 @@ export async function GET(
   const { ticketId } = await params
   const ticket = await prisma.ticket.findUnique({
     where: { id: ticketId },
-    include: { createdBy: { select: { id: true, name: true, role: true, avatar: true } } },
+    include: {
+      createdBy: { select: { id: true, name: true, role: true, avatar: true } },
+      comments: {
+        include: { author: { select: { id: true, name: true, avatar: true, role: true } } },
+        orderBy: { createdAt: 'asc' },
+      },
+    },
   })
   if (!ticket) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json(ticket)
@@ -132,6 +138,26 @@ export async function PATCH(
         appUrl: process.env.APP_URL || '',
       }),
     })
+
+    // Beritahu developer hanya ketika ticket sudah disetujui PM
+    if (body.status === 'APPROVED' && existing.status !== 'APPROVED') {
+      const devMembers = await prisma.projectMember.findMany({
+        where: { projectId: id, role: 'DEVELOPER' },
+        select: { userId: true },
+      })
+      for (const dev of devMembers) {
+        if (dev.userId !== user.id && dev.userId !== existing.createdById) {
+          await createNotification({
+            userId: dev.userId,
+            type: 'TICKET_STATUS',
+            title: 'Tiket Klien Disetujui PM',
+            message: `Tiket "${existing.title}" telah disetujui PM di ${existing.project.name} dan siap dikerjakan.`,
+            referenceId: ticketId,
+            referenceType: 'ticket',
+          })
+        }
+      }
+    }
   }
 
   emitSocket(`project:${id}`, 'ticket:updated', ticket)
