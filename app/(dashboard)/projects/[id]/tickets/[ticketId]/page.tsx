@@ -77,6 +77,8 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   const chatEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  // Set of real comment IDs that we sent ourselves — socket harus skip ini
+  const myPendingIds = useRef<Set<string>>(new Set())
 
   const MAX_FILE_SIZE = 15 * 1024 * 1024
   const ALLOWED_EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.pdf', '.zip', '.mp4', '.webm']
@@ -101,10 +103,13 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
 
     const handleNewComment = (payload: { ticketId: string; comment: TicketComment }) => {
       if (payload.ticketId !== ticketId) return
+      // Skip jika ini comment kita sendiri (sudah di-handle oleh handleSend)
+      if (myPendingIds.current.has(payload.comment.id)) {
+        myPendingIds.current.delete(payload.comment.id)
+        return
+      }
       setComments(prev => {
-        // Skip jika sudah ada (dari replace optimistic atau duplicate socket)
         if (prev.some(c => c.id === payload.comment.id)) return prev
-        // Juga skip jika masih ada optimistic dari kita (sudah di-replace di handleSend)
         return [...prev, payload.comment]
       })
     }
@@ -212,7 +217,9 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
 
       if (res.ok) {
         const real = await res.json()
-        // 3. Ganti bubble optimistic dengan data real dari server
+        // Register ID agar socket handler skip duplicate
+        myPendingIds.current.add(real.id)
+        // Ganti bubble optimistic dengan data real dari server
         setComments(prev => prev.map(c => c.id === tempId ? { ...real, _optimistic: false } : c))
         // Cleanup preview URLs
         filesToSend.forEach(f => { if (f.preview) URL.revokeObjectURL(f.preview) })

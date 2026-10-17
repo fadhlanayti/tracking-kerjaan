@@ -36,6 +36,7 @@ export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: s
   const [pendingFiles, setPendingFiles] = useState<{ file: File; preview: string }[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const myPendingIds = useRef<Set<string>>(new Set())
 
   // 1. Fetch initial messages when chat drawer opens
   useEffect(() => {
@@ -68,6 +69,10 @@ export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: s
     socket.on('connect', joinRoom)
 
     const handleNewMessage = (message: Message) => {
+      if (myPendingIds.current.has(message.id)) {
+        myPendingIds.current.delete(message.id)
+        return
+      }
       setMessages(prev => (prev.some(m => m.id === message.id) ? prev : [...prev, message]))
     }
 
@@ -146,6 +151,7 @@ export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: s
 
       if (res.ok) {
         const message = await res.json()
+        myPendingIds.current.add(message.id)
         const socket = getSocket()
         socket.emit('message:send', { ...message, projectId })
         // Replace optimistic message with real one

@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications'
 import { formatNewComment } from '@/lib/whatsapp'
+import { notifyMentions } from '@/lib/mentions'
 
 export async function POST(
   req: NextRequest,
@@ -66,6 +67,18 @@ export async function POST(
       })
     }
   }
+
+  // @mention notifications
+  notifyMentions({
+    content,
+    projectId: id,
+    authorId: session.user.id,
+    authorName: session.user.name || 'User',
+    refType: 'issue_comment',
+    refId: issueId,
+    refTitle: issue?.title,
+    refUrl: `${process.env.APP_URL}/projects/${id}/issues/${issueId}`,
+  }).catch(() => {})
 
   return NextResponse.json(comment, { status: 201 })
 }

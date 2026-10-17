@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { emitSocket } from '@/lib/socket'
+import { notifyMentions } from '@/lib/mentions'
 
 export async function POST(
   req: NextRequest,
@@ -78,6 +79,18 @@ export async function POST(
 
   emitSocket(`project:${id}`, 'project:update:status', updatedParent)
   emitSocket(`project:${id}`, 'project:update:log', { updateId, log })
+
+  // @mention notifications
+  notifyMentions({
+    content: content.trim(),
+    projectId: id,
+    authorId: user.id,
+    authorName: user.name || 'User',
+    refType: 'update_log',
+    refId: updateId,
+    refTitle: updatedParent?.title,
+    refUrl: `${process.env.APP_URL}/projects/${id}`,
+  }).catch(() => {})
 
   return NextResponse.json({ log, update: updatedParent }, { status: 201 })
 }

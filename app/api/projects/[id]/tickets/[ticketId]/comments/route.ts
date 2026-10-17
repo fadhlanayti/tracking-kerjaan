@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { emitSocket } from '@/lib/socket'
+import { notifyMentions } from '@/lib/mentions'
 
 export async function GET(
   req: NextRequest,
@@ -63,6 +64,19 @@ export async function POST(
   }
 
   emitSocket(`project:${id}`, 'ticket-comment:new', { ticketId, comment })
+
+  // @mention notifications
+  const ticketInfo = await prisma.ticket.findUnique({ where: { id: ticketId }, select: { title: true } })
+  notifyMentions({
+    content: content?.trim() || '',
+    projectId: id,
+    authorId: session.user.id,
+    authorName: session.user.name || 'User',
+    refType: 'ticket_comment',
+    refId: ticketId,
+    refTitle: ticketInfo?.title,
+    refUrl: `${process.env.APP_URL}/projects/${id}/tickets/${ticketId}`,
+  }).catch(() => {})
 
   return NextResponse.json(comment, { status: 201 })
 }

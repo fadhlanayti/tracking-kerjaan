@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { emitSocket } from '@/lib/socket'
+import { notifyMentions } from '@/lib/mentions'
 
 export async function GET(
   req: NextRequest,
@@ -68,6 +69,17 @@ export async function POST(
 
   // Broadcast realtime socket to all participants in this project
   emitSocket(`project:${id}`, 'message:new', { ...message, projectId: id })
+
+  // @mention notifications (fire-and-forget)
+  notifyMentions({
+    content: trimmedContent,
+    projectId: id,
+    authorId: session.user.id,
+    authorName: session.user.name || 'User',
+    refType: 'chat',
+    refId: message.id,
+    refUrl: `${process.env.APP_URL}/projects/${id}/chat`,
+  }).catch(() => {})
 
   return NextResponse.json(message, { status: 201 })
 }

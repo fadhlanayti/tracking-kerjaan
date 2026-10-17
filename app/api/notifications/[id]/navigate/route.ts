@@ -22,20 +22,44 @@ export async function GET(
   let url: string | null = null
 
   switch (notif.referenceType) {
-    case 'ticket': {
+    case 'ticket':
+    case 'ticket_comment': {
       const ticket = await prisma.ticket.findUnique({
         where: { id: notif.referenceId },
-        select: { projectId: true },
+        select: { projectId: true, status: true },
       })
-      if (ticket) url = `/projects/${ticket.projectId}/tickets`
+      if (ticket) {
+        const inWork = ['OPEN', 'IN_PROGRESS', 'DONE'].includes(ticket.status)
+        url = inWork
+          ? `/projects/${ticket.projectId}/tickets/${notif.referenceId}`
+          : `/projects/${ticket.projectId}/tickets`
+      }
       break
     }
-    case 'issue': {
+    case 'issue':
+    case 'issue_comment': {
       const issue = await prisma.issue.findUnique({
         where: { id: notif.referenceId },
         select: { projectId: true },
       })
       if (issue) url = `/projects/${issue.projectId}/issues/${notif.referenceId}`
+      break
+    }
+    case 'chat': {
+      // referenceId = messageId — cari channel-nya
+      const msg = await (prisma as any).chatMessage.findUnique({
+        where: { id: notif.referenceId },
+        include: { channel: { select: { projectId: true } } },
+      })
+      if (msg?.channel) url = `/projects/${msg.channel.projectId}/chat`
+      break
+    }
+    case 'update_log': {
+      const log = await (prisma as any).projectUpdateLog.findUnique({
+        where: { id: notif.referenceId },
+        include: { projectUpdate: { select: { projectId: true } } },
+      })
+      if (log?.projectUpdate) url = `/projects/${log.projectUpdate.projectId}`
       break
     }
     case 'project': {
