@@ -2,21 +2,36 @@
 
 /**
  * Render text dengan @mention di-bold.
- * "@Nama User" → <strong>@Nama User</strong>
+ * Mention = @Nama yang di-insert via MentionTextarea (diakhiri spasi atau end)
  */
 export function RenderMention({ text, className }: { text: string; className?: string }) {
-  // Split on @mention pattern: @word(s) sampai double-space, newline, atau end
-  const parts = text.split(/(@[\w][\w\s]*?)(?=\s{2}|\n|$|[.,!?](?:\s|$))/g)
+  // Match @mention: @ diikuti nama (huruf, angka, spasi) yang diinsert dari dropdown
+  // Nama pasti diakhiri spasi (karena insertMention menambah spasi setelah nama)
+  // Pattern: @, lalu 1-40 karakter word/spasi, stop di spasi-ganda, newline, punctuation, atau akhir string
+  const regex = /@([\w][\w ]{0,38}?)(?= |$|\n|[.,!?;:])/g
 
-  return (
-    <span className={className}>
-      {parts.map((part, i) =>
-        part.startsWith('@') ? (
-          <strong key={i} className="font-bold text-blue-600">{part}</strong>
-        ) : (
-          <span key={i}>{part}</span>
-        )
-      )}
-    </span>
-  )
+  const result: React.ReactNode[] = []
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = regex.exec(text)) !== null) {
+    // Teks sebelum mention
+    if (match.index > lastIndex) {
+      result.push(<span key={`t${lastIndex}`}>{text.slice(lastIndex, match.index)}</span>)
+    }
+    // Mention itself
+    result.push(
+      <strong key={`m${match.index}`} className="font-semibold text-blue-600">
+        @{match[1]}
+      </strong>
+    )
+    lastIndex = match.index + match[0].length
+  }
+
+  // Sisa teks setelah mention terakhir
+  if (lastIndex < text.length) {
+    result.push(<span key={`t${lastIndex}`}>{text.slice(lastIndex)}</span>)
+  }
+
+  return <span className={className}>{result.length > 0 ? result : text}</span>
 }
