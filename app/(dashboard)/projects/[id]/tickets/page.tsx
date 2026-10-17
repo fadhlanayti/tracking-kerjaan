@@ -8,19 +8,12 @@ import {
   Trash2,
   Edit3,
   FileText,
-  Paperclip,
   AlertCircle,
-  Clock,
-  CheckCircle2,
-  XCircle,
   AlertTriangle,
   Rocket,
   Sparkles,
   Bug,
-  Check,
   ShieldCheck,
-  ChevronRight,
-  ExternalLink,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useImageLightbox } from '@/components/image-lightbox'
@@ -355,35 +348,38 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto pt-3 pb-16 px-3 sm:px-6">
+    <div className="w-full max-w-5xl mx-auto pt-4 pb-16 px-3 sm:px-6">
+      {/* Breadcrumb Back Button */}
+      <div className="mb-4">
+        <Link
+          href={`/projects/${id}`}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white hover:bg-zinc-50 text-zinc-700 hover:text-zinc-900 border border-zinc-200/90 shadow-2xs text-xs font-semibold no-underline transition-all"
+        >
+          <ArrowLeft size={14} className="text-zinc-500" />
+          <span>Kembali ke Detail Proyek</span>
+        </Link>
+      </div>
+
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
-        <div className="flex items-center gap-3">
-          <Link
-            href={`/projects/${id}`}
-            className="btn-secondary w-9 h-9 p-0 rounded-full inline-flex items-center justify-center no-underline shrink-0"
-          >
-            <ArrowLeft size={16} />
-          </Link>
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 m-0">
-                Tiket Permintaan
-              </h1>
-              <span className="text-[11px] font-medium text-zinc-500 bg-zinc-100 border border-zinc-200/80 px-2 py-0.5 rounded-full">
-                Client Intake
-              </span>
-            </div>
-            <p className="text-xs sm:text-sm text-zinc-500 mt-1 mb-0">
-              Saluran permintaan fitur, revisi, dan rilis dari klien yang dikurasi oleh PM sebelum dieksekusi.
-            </p>
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 m-0">
+              Tiket Permintaan
+            </h1>
+            <span className="text-[11px] font-semibold text-zinc-700 bg-white border border-zinc-200/80 px-2.5 py-0.5 rounded-full shadow-2xs">
+              Client Intake
+            </span>
           </div>
+          <p className="text-xs sm:text-sm text-zinc-700 font-normal mt-1 mb-0">
+            Saluran permintaan fitur, revisi, dan rilis dari klien yang dikurasi oleh PM sebelum dieksekusi.
+          </p>
         </div>
 
         {canCreate && (
           <button
             onClick={openCreateModal}
-            className="btn-primary inline-flex items-center gap-1.5 shrink-0 cursor-pointer text-xs sm:text-sm py-2 px-4"
+            className="btn-primary inline-flex items-center gap-1.5 shrink-0 cursor-pointer text-xs sm:text-sm py-2 px-4 shadow-sm"
           >
             <Plus size={15} /> Ajukan Permintaan
           </button>
