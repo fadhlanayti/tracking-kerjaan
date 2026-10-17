@@ -5,6 +5,7 @@ import { Send, X, MessageSquare, Image as ImageIcon } from 'lucide-react'
 import { getSocket } from '@/lib/socket-client'
 import { useImageLightbox } from './image-lightbox'
 import { MentionTextarea } from './mention-textarea'
+import { RenderMention } from './render-mention'
 
 interface Message {
   id: string
@@ -42,7 +43,6 @@ export function ProjectChatWidget({ projectId, isOpen, onClose, members = [] }: 
   const [pendingFiles, setPendingFiles] = useState<{ file: File; preview: string }[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const myPendingIds = useRef<Set<string>>(new Set())
 
   // 1. Fetch initial messages when chat drawer opens
   useEffect(() => {
@@ -75,10 +75,8 @@ export function ProjectChatWidget({ projectId, isOpen, onClose, members = [] }: 
     socket.on('connect', joinRoom)
 
     const handleNewMessage = (message: Message) => {
-      if (myPendingIds.current.has(message.id)) {
-        myPendingIds.current.delete(message.id)
-        return
-      }
+      // Skip pesan dari diri sendiri — sudah tampil via optimistic
+      if (message.sender?.id === session?.user?.id) return
       setMessages(prev => (prev.some(m => m.id === message.id) ? prev : [...prev, message]))
     }
 
@@ -157,7 +155,6 @@ export function ProjectChatWidget({ projectId, isOpen, onClose, members = [] }: 
 
       if (res.ok) {
         const message = await res.json()
-        myPendingIds.current.add(message.id)
         const socket = getSocket()
         socket.emit('message:send', { ...message, projectId })
         // Replace optimistic message with real one
@@ -338,7 +335,7 @@ export function ProjectChatWidget({ projectId, isOpen, onClose, members = [] }: 
 
                       {/* Text content (jika ada) */}
                       {msg.content ? (
-                        <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                        <p className="whitespace-pre-wrap wrap-break-word"><RenderMention text={msg.content} /></p>
                       ) : null}
                     </div>
                     <span className="text-[10px] font-medium text-zinc-400 mt-1 mx-1">{formatTime(msg.createdAt)}</span>

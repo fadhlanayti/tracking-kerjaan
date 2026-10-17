@@ -17,6 +17,7 @@ import Link from 'next/link'
 import { useImageLightbox } from '@/components/image-lightbox'
 import { getSocket } from '@/lib/socket-client'
 import { MentionTextarea } from '@/components/mention-textarea'
+import { RenderMention } from '@/components/render-mention'
 
 interface TicketComment {
   id: string
@@ -80,7 +81,6 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   // Set of real comment IDs that we sent ourselves — socket harus skip ini
-  const myPendingIds = useRef<Set<string>>(new Set())
 
   const MAX_FILE_SIZE = 15 * 1024 * 1024
   const ALLOWED_EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.pdf', '.zip', '.mp4', '.webm']
@@ -120,11 +120,8 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
 
     const handleNewComment = (payload: { ticketId: string; comment: TicketComment }) => {
       if (payload.ticketId !== ticketId) return
-      // Skip jika ini comment kita sendiri (sudah di-handle oleh handleSend)
-      if (myPendingIds.current.has(payload.comment.id)) {
-        myPendingIds.current.delete(payload.comment.id)
-        return
-      }
+      // Skip comment dari diri sendiri — sudah di-handle optimistic oleh handleSend
+      if (payload.comment.author?.id === (session?.user as any)?.id) return
       setComments(prev => {
         if (prev.some(c => c.id === payload.comment.id)) return prev
         return [...prev, payload.comment]
@@ -235,7 +232,6 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
       if (res.ok) {
         const real = await res.json()
         // Register ID agar socket handler skip duplicate
-        myPendingIds.current.add(real.id)
         // Ganti bubble optimistic dengan data real dari server
         setComments(prev => prev.map(c => c.id === tempId ? { ...real, _optimistic: false } : c))
         // Cleanup preview URLs
@@ -418,7 +414,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                       ? 'bg-zinc-900 text-white rounded-tr-md'
                       : 'bg-zinc-100 text-zinc-900 rounded-tl-md'
                   }`}>
-                    {c.content && <p className="m-0 whitespace-pre-wrap wrap-break-word">{c.content}</p>}
+                    {c.content && <p className="m-0 whitespace-pre-wrap wrap-break-word"><RenderMention text={c.content} /></p>}
 
                     {/* Image Grid */}
                     {images.length > 0 && (

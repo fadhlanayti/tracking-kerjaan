@@ -8,6 +8,7 @@ import { FileUpload } from '@/components/file-upload'
 import { useImageLightbox } from '@/components/image-lightbox'
 import { getSocket } from '@/lib/socket-client'
 import { MentionTextarea } from '@/components/mention-textarea'
+import { RenderMention } from '@/components/render-mention'
 
 interface Comment {
   id: string
@@ -42,7 +43,6 @@ export default function IssueDetailPage({ params }: { params: Promise<{ id: stri
   const [commentAttachments, setCommentAttachments] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [members, setMembers] = useState<{ user: { id: string; name: string; role: string } }[]>([])
-  const myPendingIds = useRef<Set<string>>(new Set())
 
   function fetchIssue() {
     fetch(`/api/projects/${id}/issues/${issueId}`)
@@ -74,10 +74,8 @@ export default function IssueDetailPage({ params }: { params: Promise<{ id: stri
     socket.emit('join:project', { projectId: id })
 
     const handleNewComment = (comment: Comment) => {
-      if (myPendingIds.current.has(comment.id)) {
-        myPendingIds.current.delete(comment.id)
-        return
-      }
+      // Skip comment dari diri sendiri — sudah tampil via optimistic
+      if (comment.author?.id === (session?.user as any)?.id) return
       setIssue(prev => {
         if (!prev) return prev
         if (prev.comments.some(c => c.id === comment.id)) return prev
@@ -119,7 +117,6 @@ export default function IssueDetailPage({ params }: { params: Promise<{ id: stri
       })
       if (res.ok) {
         const real = await res.json()
-        myPendingIds.current.add(real.id)
         setIssue(prev => {
           if (!prev) return prev
           return { ...prev, comments: prev.comments.map(c => c.id === tempId ? real : c) }
@@ -405,7 +402,7 @@ export default function IssueDetailPage({ params }: { params: Promise<{ id: stri
               </div>
 
               <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.6, paddingLeft: '2.125rem', whiteSpace: 'pre-wrap' }}>
-                {c.content}
+                <RenderMention text={c.content} />
               </div>
 
               {c.attachments.length > 0 && (

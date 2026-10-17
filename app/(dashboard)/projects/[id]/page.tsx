@@ -35,6 +35,7 @@ import { getSocket } from '@/lib/socket-client'
 import { ProjectChatWidget } from '@/components/project-chat-widget'
 import { useImageLightbox } from '@/components/image-lightbox'
 import { MentionTextarea } from '@/components/mention-textarea'
+import { RenderMention } from '@/components/render-mention'
 
 interface Member {
   user: { id: string; name: string; email: string; role: string; avatar?: string | null }
@@ -1197,7 +1198,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                 )}
                               </div>
                               {/* Content */}
-                              <p className="text-sm text-zinc-800 leading-relaxed">{log.content}</p>
+                              <p className="text-sm text-zinc-800 leading-relaxed"><RenderMention text={log.content} /></p>
                               {/* Log images */}
                               {log.attachments && log.attachments.length > 0 && (
                                 <div className="flex flex-wrap gap-2" style={{ marginTop: '0.5rem' }}>
