@@ -935,8 +935,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               <Ticket size={22} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-zinc-900 group-hover:text-purple-600 transition-colors">Tickets</p>
-              <p className="text-xs text-zinc-500 mt-0.5">Permintaan & persetujuan klien</p>
+              <p className="text-sm font-semibold text-zinc-900 group-hover:text-purple-600 transition-colors">Tiket Permintaan</p>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                {isDev
+                  ? 'Permintaan klien yang telah disetujui PM'
+                  : session?.user?.role === 'CLIENT'
+                  ? 'Ajukan kebutuhan, fitur baru, dan perubahan'
+                  : 'Kurasi permintaan klien & persetujuan rilis'}
+              </p>
             </div>
           </div>
           <div className="w-8 h-8 rounded-full flex items-center justify-center bg-zinc-100 group-hover:bg-purple-600 group-hover:text-white text-zinc-500 transition-all">

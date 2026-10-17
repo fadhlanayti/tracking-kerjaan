@@ -132,6 +132,26 @@ export async function PATCH(
         appUrl: process.env.APP_URL || '',
       }),
     })
+
+    // Beritahu developer hanya ketika ticket sudah disetujui PM
+    if (body.status === 'APPROVED' && existing.status !== 'APPROVED') {
+      const devMembers = await prisma.projectMember.findMany({
+        where: { projectId: id, role: 'DEVELOPER' },
+        select: { userId: true },
+      })
+      for (const dev of devMembers) {
+        if (dev.userId !== user.id && dev.userId !== existing.createdById) {
+          await createNotification({
+            userId: dev.userId,
+            type: 'TICKET_STATUS',
+            title: 'Tiket Klien Disetujui PM',
+            message: `Tiket "${existing.title}" telah disetujui PM di ${existing.project.name} dan siap dikerjakan.`,
+            referenceId: ticketId,
+            referenceType: 'ticket',
+          })
+        }
+      }
+    }
   }
 
   emitSocket(`project:${id}`, 'ticket:updated', ticket)
