@@ -7,13 +7,11 @@ import {
   Paperclip,
   X,
   FileText,
-  Loader2,
   AlertTriangle,
   Rocket,
   Sparkles,
   Bug,
   ShieldCheck,
-  ImageIcon,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useImageLightbox } from '@/components/image-lightbox'
@@ -25,6 +23,7 @@ interface TicketComment {
   attachments: string[]
   author: { id: string; name: string; avatar: string | null; role: string }
   createdAt: string
+  _optimistic?: boolean   // bubble sementara, masih upload
 }
 
 interface TicketDetail {
@@ -75,8 +74,6 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true)
   const [msgText, setMsgText] = useState('')
   const [pendingFiles, setPendingFiles] = useState<{ file: File; preview: string }[]>([])
-  const [uploading, setUploading] = useState(false)
-  const [sending, setSending] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -103,12 +100,13 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
     socket.emit('join:project', { projectId: id })
 
     const handleNewComment = (payload: { ticketId: string; comment: TicketComment }) => {
-      if (payload.ticketId === ticketId) {
-        setComments(prev => {
-          if (prev.some(c => c.id === payload.comment.id)) return prev
-          return [...prev, payload.comment]
-        })
-      }
+      if (payload.ticketId !== ticketId) return
+      setComments(prev => {
+        // Skip jika sudah ada (dari replace optimistic atau duplicate socket)
+        if (prev.some(c => c.id === payload.comment.id)) return prev
+        // Juga skip jika masih ada optimistic dari kita (sudah di-replace di handleSend)
+        return [...prev, payload.comment]
+      })
     }
 
     const handleTicketUpdated = (updated: any) => {
@@ -168,24 +166,42 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   async function handleSend(e: React.FormEvent) {
     e.preventDefault()
     const text = msgText.trim()
-    if (!text && pendingFiles.length === 0) return
-    setSending(true)
+    const filesToSend = [...pendingFiles]
+    if (!text && filesToSend.length === 0) return
 
+    // 1. Langsung render bubble optimistic dengan preview lokal
+    const tempId = `temp-${Date.now()}`
+    const optimisticAttachments = filesToSend.map(f => f.preview || f.file.name)
+    const optimisticComment: TicketComment = {
+      id: tempId,
+      content: text,
+      attachments: optimisticAttachments,
+      author: {
+        id: (session?.user as any)?.id || '',
+        name: session?.user?.name || '',
+        avatar: (session?.user as any)?.avatar || null,
+        role: session?.user?.role || '',
+      },
+      createdAt: new Date().toISOString(),
+      _optimistic: true,
+    }
+
+    setComments(prev => [...prev, optimisticComment])
+    setMsgText('')
+    setPendingFiles([])
+    if (textareaRef.current) textareaRef.current.style.height = 'auto'
+
+    // 2. Upload files + kirim ke server di background
     try {
-      // Upload files
       const uploadedUrls: string[] = []
-      if (pendingFiles.length > 0) {
-        setUploading(true)
-        for (const { file } of pendingFiles) {
-          try {
-            const formData = new FormData()
-            formData.append('file', file)
-            const res = await fetch('/api/upload', { method: 'POST', body: formData })
-            const data = await res.json()
-            if (data.url) uploadedUrls.push(data.url)
-          } catch {}
-        }
-        setUploading(false)
+      for (const { file } of filesToSend) {
+        try {
+          const formData = new FormData()
+          formData.append('file', file)
+          const res = await fetch('/api/upload', { method: 'POST', body: formData })
+          const data = await res.json()
+          if (data.url) uploadedUrls.push(data.url)
+        } catch {}
       }
 
       const res = await fetch(`/api/projects/${id}/tickets/${ticketId}/comments`, {
@@ -195,16 +211,17 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
       })
 
       if (res.ok) {
-        const comment = await res.json()
-        setComments(prev => prev.some(c => c.id === comment.id) ? prev : [...prev, comment])
-        setMsgText('')
-        setPendingFiles([])
-        if (textareaRef.current) textareaRef.current.style.height = 'auto'
+        const real = await res.json()
+        // 3. Ganti bubble optimistic dengan data real dari server
+        setComments(prev => prev.map(c => c.id === tempId ? { ...real, _optimistic: false } : c))
+        // Cleanup preview URLs
+        filesToSend.forEach(f => { if (f.preview) URL.revokeObjectURL(f.preview) })
+      } else {
+        // Gagal — tandai bubble sebagai error (tetap tampil tapi ada indikator)
+        setComments(prev => prev.filter(c => c.id !== tempId))
       }
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setSending(false)
+    } catch {
+      setComments(prev => prev.filter(c => c.id !== tempId))
     }
   }
 
@@ -335,7 +352,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[200px] max-h-[50vh] sm:max-h-[55vh]">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-50 max-h-[50vh] sm:max-h-[55vh]">
           {comments.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-zinc-400 text-xs">
               <ShieldCheck size={28} className="mb-2 text-zinc-300" />
@@ -346,12 +363,14 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
 
           {comments.map(c => {
             const isMe = c.author.id === (session?.user as any)?.id
-            const images = (c.attachments || []).filter(u => /\.(jpg|jpeg|png|webp|gif|svg)($|\?)/i.test(u))
-            const files = (c.attachments || []).filter(u => !/\.(jpg|jpeg|png|webp|gif|svg)($|\?)/i.test(u))
+            // Optimistic: attachments bisa berupa blob: URL atau nama file
+            const isOptimistic = !!(c as any)._optimistic
+            const images = (c.attachments || []).filter(u => /\.(jpg|jpeg|png|webp|gif|svg)($|\?)/i.test(u) || u.startsWith('blob:'))
+            const files = (c.attachments || []).filter(u => !/\.(jpg|jpeg|png|webp|gif|svg)($|\?)/i.test(u) && !u.startsWith('blob:'))
             const avatarColor = getAvatarColor(c.author.name)
 
             return (
-              <div key={c.id} className={`flex gap-2.5 ${isMe ? 'flex-row-reverse' : ''}`}>
+              <div key={c.id} className={`flex gap-2.5 ${isMe ? 'flex-row-reverse' : ''} ${isOptimistic ? 'opacity-60' : ''} transition-opacity`}>
                 {/* Avatar */}
                 {c.author.avatar ? (
                   <img src={c.author.avatar} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
@@ -465,7 +484,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
               className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-600 flex items-center justify-center border-none cursor-pointer transition-colors shrink-0"
               title="Lampirkan file"
             >
-              {uploading ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />}
+              <Paperclip size={16} />
             </button>
 
             <input
@@ -494,10 +513,10 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
             {/* Send Button */}
             <button
               type="submit"
-              disabled={sending || (!msgText.trim() && pendingFiles.length === 0)}
+              disabled={!msgText.trim() && pendingFiles.length === 0}
               className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white flex items-center justify-center border-none cursor-pointer transition-colors shrink-0 disabled:opacity-30 disabled:cursor-not-allowed shadow-sm"
             >
-              {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+              <Send size={16} />
             </button>
           </div>
         </form>
