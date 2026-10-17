@@ -95,10 +95,10 @@ export default function ProjectContributorsPage() {
               <FolderKanban className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: 'var(--accent)' }}>
                 Project & Contributors
               </h1>
-              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">
+              <p className="text-xs sm:text-sm mt-0.5" style={{ color: 'rgba(255,255,255,0.7)' }}>
                 Monitoring project dan developer contributor aktif
               </p>
             </div>

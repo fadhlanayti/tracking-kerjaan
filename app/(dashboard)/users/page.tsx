@@ -250,10 +250,10 @@ export default function UsersPage() {
             <UsersIcon size={20} />
           </div>
           <div>
-            <h2 className="text-xl font-bold tracking-tight">
+            <h2 className="text-xl font-bold tracking-tight" style={{ color: 'var(--accent)' }}>
               Users Management
             </h2>
-            <p className="text-xs text-[var(--text-muted)] mt-0.5">
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.7)' }}>
               Kelola akun, foto profil, dan sosial media anggota
             </p>
           </div>

@@ -365,14 +365,14 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
       <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 m-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight m-0" style={{ color: 'var(--accent)' }}>
               Tiket Permintaan
             </h1>
             <span className="text-[11px] font-semibold text-zinc-700 bg-white border border-zinc-200/80 px-2.5 py-0.5 rounded-full shadow-2xs">
               Client Intake
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-zinc-700 font-normal mt-1 mb-0">
+          <p className="text-xs sm:text-sm font-normal mt-1 mb-0" style={{ color: 'rgba(255,255,255,0.7)' }}>
             Saluran permintaan fitur, revisi, dan rilis dari klien yang dikurasi oleh PM sebelum dieksekusi.
           </p>
         </div>

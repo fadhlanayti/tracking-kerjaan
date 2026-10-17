@@ -146,10 +146,10 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
       {/* Header bar dengan margin bawah yang lega */}
       <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
         <div>
-          <h1 className="!text-black" style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: '#000000' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: 'var(--accent)' }}>
             Issues
           </h1>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.5rem', marginBottom: 0 }}>
+          <p style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.7)', marginTop: '0.5rem', marginBottom: 0 }}>
             Pantau, laporkan, dan kelola tugas serta kendala proyek
           </p>
         </div>
