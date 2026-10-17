@@ -16,6 +16,7 @@ import {
 import Link from 'next/link'
 import { useImageLightbox } from '@/components/image-lightbox'
 import { getSocket } from '@/lib/socket-client'
+import { MentionTextarea } from '@/components/mention-textarea'
 
 interface TicketComment {
   id: string
@@ -71,6 +72,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   const { openImage } = useImageLightbox()
   const [ticket, setTicket] = useState<TicketDetail | null>(null)
   const [comments, setComments] = useState<TicketComment[]>([])
+  const [members, setMembers] = useState<{ id: string; name: string; avatar?: string | null; role?: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [msgText, setMsgText] = useState('')
   const [pendingFiles, setPendingFiles] = useState<{ file: File; preview: string }[]>([])
@@ -94,6 +96,21 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
         setLoading(false)
       })
       .catch(() => setLoading(false))
+
+    // Fetch members for @mention
+    fetch(`/api/projects/${id}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data?.members) {
+          setMembers(data.members.map((m: any) => ({
+            id: m.user.id,
+            name: m.user.name,
+            avatar: m.user.avatar,
+            role: m.role,
+          })))
+        }
+      })
+      .catch(() => {})
   }, [id, ticketId])
 
   // Socket live update
@@ -505,12 +522,13 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
 
             {/* Text Input */}
             <div className="flex-1 min-w-0">
-              <textarea
-                ref={textareaRef}
+              <MentionTextarea
+                inputRef={textareaRef}
                 rows={1}
                 value={msgText}
-                onChange={e => { setMsgText(e.target.value); autoGrow() }}
+                onChange={v => { setMsgText(v); autoGrow() }}
                 onKeyDown={handleKeyDown}
+                members={members}
                 placeholder="Tulis update... (Ctrl+Enter untuk kirim)"
                 className="w-full text-sm p-2.5 sm:p-3 rounded-xl border border-zinc-200 outline-none focus:border-zinc-400 resize-none font-sans leading-snug"
                 style={{ maxHeight: 120 }}

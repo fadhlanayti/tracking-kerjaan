@@ -7,6 +7,7 @@ import { StatusBadge, statusLabels } from '@/components/status-badge'
 import { FileUpload } from '@/components/file-upload'
 import { useImageLightbox } from '@/components/image-lightbox'
 import { getSocket } from '@/lib/socket-client'
+import { MentionTextarea } from '@/components/mention-textarea'
 
 interface Comment {
   id: string
@@ -459,10 +460,11 @@ export default function IssueDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Comment Box */}
         <form onSubmit={submitComment} className="card p-4" style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <textarea
+          <MentionTextarea
             value={commentText}
-            onChange={e => setCommentText(e.target.value)}
+            onChange={v => setCommentText(v)}
             onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submitComment(e as any) } }}
+            members={members.map(m => ({ id: m.user.id, name: m.user.name, role: m.user.role }))}
             placeholder="Write a comment... (Ctrl+Enter to send)"
             rows={3}
             className="input resize-none"

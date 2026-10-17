@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { Send, X, MessageSquare, Image as ImageIcon } from 'lucide-react'
 import { getSocket } from '@/lib/socket-client'
 import { useImageLightbox } from './image-lightbox'
+import { MentionTextarea } from './mention-textarea'
 
 interface Message {
   id: string
@@ -27,7 +28,12 @@ function formatDate(date: string) {
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: string; isOpen: boolean; onClose: () => void }) {
+export function ProjectChatWidget({ projectId, isOpen, onClose, members = [] }: {
+  projectId: string
+  isOpen: boolean
+  onClose: () => void
+  members?: { id: string; name: string; avatar?: string | null; role?: string }[]
+}) {
   const { data: session } = useSession()
   const { openImage } = useImageLightbox()
   const [messages, setMessages] = useState<Message[]>([])
@@ -370,12 +376,14 @@ export function ProjectChatWidget({ projectId, isOpen, onClose }: { projectId: s
             <ImageIcon size={18} />
           </button>
           <input ref={fileInputRef} type="file" accept="image/*,video/*,.pdf,.doc,.docx" multiple className="hidden" onChange={handlePickFiles} />
-          <input
+          <MentionTextarea
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={v => setInput(v)}
             onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sendMessage(e as any) } }}
+            members={members}
             placeholder="Tulis pesan... (Ctrl+Enter kirim)"
-            className="flex-1 bg-transparent text-sm text-white placeholder-zinc-500 outline-none border-none"
+            rows={1}
+            className="flex-1 bg-transparent text-sm text-white placeholder-zinc-500 outline-none border-none resize-none"
           />
           <button
             type="submit"

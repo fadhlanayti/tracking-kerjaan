@@ -34,9 +34,10 @@ import { findTechPreset, TechStackSelector } from '@/components/tech-stack-selec
 import { getSocket } from '@/lib/socket-client'
 import { ProjectChatWidget } from '@/components/project-chat-widget'
 import { useImageLightbox } from '@/components/image-lightbox'
+import { MentionTextarea } from '@/components/mention-textarea'
 
 interface Member {
-  user: { id: string; name: string; email: string; role: string }
+  user: { id: string; name: string; email: string; role: string; avatar?: string | null }
   role: string
 }
 
@@ -1247,11 +1248,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <div style={{ position: 'absolute', left: '-1.75rem', top: '3px', width: '12px', height: '12px', borderRadius: '50%', background: activeLogUpdateId === up.id ? '#0071E3' : '#e4e4e7' }} />
                             {activeLogUpdateId === up.id ? (
                               <div className="flex flex-col gap-2.5 p-3.5 rounded-xl" style={{ background: 'rgba(0,113,227,0.04)', border: '1.5px solid rgba(0,113,227,0.2)' }}>
-                                <textarea
+                                <MentionTextarea
                                   value={logContent}
-                                  onChange={e => setLogContent(e.target.value)}
+                                  onChange={v => setLogContent(v)}
                                   rows={3}
-                                  placeholder="Tulis update progress..."
+                                  members={project.members.map(m => ({ id: m.user.id, name: m.user.name, avatar: m.user.avatar, role: m.role }))}
+                                  placeholder="Tulis update progress... (@nama untuk tag)"
                                   className="input text-sm"
                                   style={{ background: '#fff' }}
                                 />
@@ -1872,6 +1874,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         projectId={id}
         isOpen={isChatOpen}
         onClose={() => setIsChatOpen(false)}
+        members={project.members.map(m => ({ id: m.user.id, name: m.user.name, avatar: m.user.avatar, role: m.role }))}
       />
 
       {/* Modal: Edit Project */}
