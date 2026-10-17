@@ -15,7 +15,13 @@ export async function GET(
   const { ticketId } = await params
   const ticket = await prisma.ticket.findUnique({
     where: { id: ticketId },
-    include: { createdBy: { select: { id: true, name: true, role: true, avatar: true } } },
+    include: {
+      createdBy: { select: { id: true, name: true, role: true, avatar: true } },
+      comments: {
+        include: { author: { select: { id: true, name: true, avatar: true, role: true } } },
+        orderBy: { createdAt: 'asc' },
+      },
+    },
   })
   if (!ticket) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json(ticket)

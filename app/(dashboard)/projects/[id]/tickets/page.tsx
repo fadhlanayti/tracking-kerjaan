@@ -14,6 +14,7 @@ import {
   Sparkles,
   Bug,
   ShieldCheck,
+  MessageSquare,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useImageLightbox } from '@/components/image-lightbox'
@@ -350,7 +351,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
   return (
     <div className="w-full max-w-5xl mx-auto pt-4 pb-16 px-3 sm:px-6">
       {/* Breadcrumb Back Button */}
-      <div className="mb-4">
+      <div className="mb-5">
         <Link
           href={`/projects/${id}`}
           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white hover:bg-zinc-50 text-zinc-700 hover:text-zinc-900 border border-zinc-200/90 shadow-2xs text-xs font-semibold no-underline transition-all"
@@ -361,7 +362,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
       </div>
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
+      <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 m-0">
@@ -388,7 +389,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
 
       {/* Developer Context Banner */}
       {isDeveloper && (
-        <div className="card p-3.5 mb-5 bg-sky-50/60 border-sky-200/80 text-sky-900 text-xs flex items-center gap-2.5">
+        <div className="card p-3.5 mb-8 bg-sky-50/60 border-sky-200/80 text-sky-900 text-xs flex items-center gap-2.5">
           <ShieldCheck size={18} className="text-sky-600 shrink-0" />
           <div>
             <span className="font-semibold">Mode Developer:</span> Hanya menampilkan tiket yang telah{' '}
@@ -399,7 +400,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
 
       {/* Filters Toolbar */}
       {!isDeveloper && (
-        <div className="card p-2 sm:p-2.5 mb-5 flex flex-wrap items-center justify-between gap-2">
+        <div className="card p-2 sm:p-2.5 mb-8 flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-1.5">
             {[
               { key: '', label: 'Semua', count: tickets.length },
@@ -525,6 +526,17 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                         <ShieldCheck size={13} className="text-indigo-600" />
                         <span>Review PM</span>
                       </button>
+                    )}
+
+                    {/* Link ke detail (semua role, tapi dev hanya APPROVED) */}
+                    {ticket.status === 'APPROVED' && (
+                      <Link
+                        href={`/projects/${id}/tickets/${ticket.id}`}
+                        className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/70 transition-colors no-underline"
+                      >
+                        <MessageSquare size={12} />
+                        <span>Update</span>
+                      </Link>
                     )}
 
                     {/* Delete */}
